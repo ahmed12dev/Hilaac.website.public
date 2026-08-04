@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ui/Button";
 import { useLanguage } from "@/lib/i18n/provider";
 import type { TranslationKey } from "@/lib/i18n/dictionary";
-import { cn, REGISTER_URL } from "@/lib/utils";
+import { cn, joinUrl } from "@/lib/utils";
 import { LanguageToggle } from "./LanguageToggle";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "./ThemeToggle";
@@ -143,7 +143,7 @@ export function Navbar() {
             <LanguageToggle className="hidden sm:flex" />
             <ThemeToggle />
 
-            <ButtonLink href={REGISTER_URL} size="sm" className="hidden lg:inline-flex">
+            <ButtonLink href={joinUrl()} size="sm" className="hidden lg:inline-flex">
               {tr("cta.join")}
             </ButtonLink>
 
@@ -181,7 +181,9 @@ export function Navbar() {
             >
               <div className="flex items-center justify-between border-b border-ink-200/70 p-5 dark:border-ink-800">
                 <span className="flex items-center gap-3">
-                  <Image src="/images/logo.webp" alt="" width={40} height={40} className="h-10 w-10 object-contain" />
+                  <span className="grid h-11 w-11 place-items-center rounded-full bg-white ring-2 ring-gold-500/60">
+                    <Image src="/images/logo.webp" alt="" width={44} height={44} className="h-8 w-8 object-contain" />
+                  </span>
                   <span className="font-display font-extrabold">
                     Xisbiga <span className="text-gradient-gold">Hilaac</span>
                   </span>
@@ -222,7 +224,7 @@ export function Navbar() {
 
               <div className="space-y-4 border-t border-ink-200/70 p-5 dark:border-ink-800">
                 <LanguageToggle className="w-fit" />
-                <ButtonLink href={REGISTER_URL} size="md" className="w-full">
+                <ButtonLink href={joinUrl()} size="md" className="w-full">
                   {tr("cta.join")}
                 </ButtonLink>
               </div>

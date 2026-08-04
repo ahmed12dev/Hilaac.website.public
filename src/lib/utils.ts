@@ -76,14 +76,21 @@ export const REGISTER_URL =
   process.env.NEXT_PUBLIC_REGISTER_URL || "https://www.xisbiga-hilaac.com/register.html";
 
 /**
- * Where "Join the Party" sends a visitor: the existing registration app.
+ * Where "Join the Party" sends a visitor.
  *
- * The admin panel may store this as a relative path (`/register.html`), which
- * belongs to the backend host, not this site — so relative values are resolved
- * against the API base. Falls back to NEXT_PUBLIC_REGISTER_URL.
+ * Defaults to this site's own /join page, which posts through to the existing
+ * registration backend — so a member who joins here lands in the same
+ * `registrations` table the admin dashboard manages.
+ *
+ * Set NEXT_PUBLIC_REGISTER_URL to send people to the standalone registration
+ * app instead (it takes an absolute URL, or a path resolved against the API
+ * host, e.g. `/register.html`).
  */
 export function joinUrl(fromSettings?: string | null): string {
-  if (!fromSettings) return REGISTER_URL;
-  if (/^https?:\/\//.test(fromSettings)) return fromSettings;
-  return mediaUrl(fromSettings) ?? REGISTER_URL;
+  const override = process.env.NEXT_PUBLIC_REGISTER_URL;
+  if (override) {
+    return /^https?:\/\//.test(override) ? override : (mediaUrl(override) ?? "/join");
+  }
+  void fromSettings; // admin-stored value only applies when an override is set
+  return "/join";
 }
