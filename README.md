@@ -150,3 +150,50 @@ src/
 - **Accessibility**: skip link, focus-visible rings, ARIA labels, semantic landmarks,
   `aria-pressed` / `aria-current` states, dialogs that trap scroll and close on `Esc`.
 - **Performance**: static generation with ISR, AVIF/WebP images, ~102 kB shared first-load JS.
+
+---
+
+## Deploying
+
+A standard Next.js 15 app — Vercel detects and builds it with no configuration.
+`vercel.json` only pins the region (Frankfurt, the closest Vercel region to
+Somalia) so server-rendered pages stay fast for visitors there.
+
+### Steps
+
+1. Import this repository at [vercel.com/new](https://vercel.com/new)
+2. Leave every build setting on its default — Framework should read **Next.js**
+3. Add the environment variables below
+4. Deploy
+
+### Environment variables
+
+| Variable | Value |
+|---|---|
+| `NEXT_PUBLIC_API_BASE` | `https://www.xisbiga-hilaac.com` |
+| `NEXT_PUBLIC_SITE_URL` | your deployed URL, e.g. `https://xisbiga-hilaac.vercel.app` |
+| `NEXT_PUBLIC_ADMIN_URL` | `https://www.xisbiga-hilaac.com/admin.html` |
+| `NEXT_PUBLIC_REVALIDATE` | `30` |
+
+**No database credentials belong here.** The website reaches PostgreSQL only
+through the registration backend's HTTPS API, so the database stays private to
+that server.
+
+### How the pieces connect
+
+```
+This website  ──HTTPS──>  xisbiga-hilaac.com (Node backend)  ──>  PostgreSQL
+                                                                      ^
+                                                          registration system
+                                                          + admin dashboard
+```
+
+| Call | Purpose |
+|---|---|
+| `GET /api/public/stats` | Live member, region and district totals |
+| `POST /api/register` | `/join` submissions land in the same `registrations` table |
+| `GET /api/locations` | Region and district options for the join form |
+
+Because the site talks to the backend over HTTPS, it can be hosted anywhere —
+Vercel, Netlify, Cloudflare Pages or a container host — with no change to the
+registration system.
