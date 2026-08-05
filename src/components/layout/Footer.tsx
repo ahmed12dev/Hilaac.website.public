@@ -72,8 +72,8 @@ export function Footer({ settings }: { settings: SiteSettings }) {
           {/* Brand */}
           <div className="lg:col-span-4">
             <Link href="/" className="mb-5 flex items-center gap-3">
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-white ring-2 ring-gold-500/60">
-                <Image src="/images/logo.webp" alt="Xisbiga Hilaac" width={56} height={56} className="h-11 w-11 object-contain" />
+              <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-full ring-2 ring-gold-500/60">
+                <Image src="/images/logo-circle.webp" alt="Xisbiga Hilaac" width={56} height={56} className="h-full w-full object-cover" />
               </span>
               <span className="leading-tight">
                 <span className="block font-display text-xl font-extrabold text-white">

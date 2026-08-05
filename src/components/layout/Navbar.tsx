@@ -84,14 +84,14 @@ export function Navbar() {
         <div className="container-page flex items-center justify-between gap-4">
           {/* Brand */}
           <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="Xisbiga Hilaac">
-            <span className="relative grid h-11 w-11 place-items-center rounded-full bg-white ring-2 ring-gold-500/60 transition-transform duration-300 group-hover:scale-105 sm:h-12 sm:w-12">
+            <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-full ring-2 ring-gold-500/60 transition-transform duration-300 group-hover:scale-105 sm:h-12 sm:w-12">
               <Image
-                src="/images/logo.webp"
+                src="/images/logo-circle.webp"
                 alt="Xisbiga Hilaac"
                 width={48}
                 height={48}
                 priority
-                className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+                className="h-full w-full object-cover"
               />
             </span>
             <span className="hidden leading-tight sm:block">
@@ -182,7 +182,7 @@ export function Navbar() {
               <div className="flex items-center justify-between border-b border-ink-200/70 p-5 dark:border-ink-800">
                 <span className="flex items-center gap-3">
                   <span className="grid h-11 w-11 place-items-center rounded-full bg-white ring-2 ring-gold-500/60">
-                    <Image src="/images/logo.webp" alt="" width={44} height={44} className="h-8 w-8 object-contain" />
+                    <Image src="/images/logo-circle.webp" alt="" width={44} height={44} className="h-8 w-8 object-contain" />
                   </span>
                   <span className="font-display font-extrabold">
                     Xisbiga <span className="text-gradient-gold">Hilaac</span>

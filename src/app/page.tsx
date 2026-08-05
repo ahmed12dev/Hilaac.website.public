@@ -13,8 +13,8 @@ import {
   getEvents,
   getGallery,
   getLeaders,
+  getLiveTotals,
   getNews,
-  getOverview,
   getProjects,
   getSettings,
   getStats,
@@ -27,11 +27,11 @@ export const revalidate = 30;
 
 export default async function HomePage() {
   // One parallel fetch pass — every section is rendered from admin content.
-  const [settings, stats, overview, leaders, news, projects, events, gallery, testimonials] =
+  const [settings, stats, liveTotals, leaders, news, projects, events, gallery, testimonials] =
     await Promise.all([
       getSettings(),
       getStats(),
-      getOverview(),
+      getLiveTotals(),
       getLeaders(),
       getNews({ pageSize: 4 }),
       getProjects(),
@@ -44,7 +44,15 @@ export default async function HomePage() {
     <>
       <Hero settings={settings} stats={stats} />
       <About settings={settings} />
-      <Stats stats={stats} overview={overview} />
+      <Stats
+        stats={stats}
+        liveTotals={liveTotals}
+        counts={{
+          activeProjects: projects.filter((p) => p.status === "ongoing").length,
+          completedProjects: projects.filter((p) => p.status === "completed").length,
+          upcomingEvents: events.filter((e) => e.status !== "past").length,
+        }}
+      />
       <Leadership leaders={leaders} limit={6} />
       <NewsPreview articles={news.items} />
       <ProjectsPreview projects={projects} />

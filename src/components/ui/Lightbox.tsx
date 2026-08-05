@@ -113,7 +113,7 @@ export function Lightbox({ items, index, onClose, onIndexChange }: LightboxProps
             ) : (
               <div className="relative mx-auto aspect-4/3 w-full overflow-hidden rounded-3xl bg-ink-900 ring-1 ring-gold-500/25">
                 <Image
-                  src={mediaUrl(item.src) ?? "/images/logo.webp"}
+                  src={mediaUrl(item.src) ?? "/images/logo-circle.webp"}
                   alt={tx(item.title) || "Xisbiga Hilaac"}
                   fill
                   sizes="(max-width: 1024px) 100vw, 1024px"

@@ -22,7 +22,7 @@ export function Loader({ className, label }: { className?: string; label?: strin
           aria-hidden
         />
         <Image
-          src="/images/logo.webp"
+          src="/images/logo-circle.webp"
           alt=""
           width={80}
           height={80}

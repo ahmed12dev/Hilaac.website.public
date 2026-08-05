@@ -3,7 +3,7 @@ import { About } from "@/components/sections/About";
 import { MembershipCTA } from "@/components/sections/MembershipCTA";
 import { Stats } from "@/components/sections/Stats";
 import { AboutHeader } from "./AboutHeader";
-import { getSettings, getStats } from "@/lib/api";
+import { getEvents, getLiveTotals, getProjects, getSettings, getStats } from "@/lib/api";
 import { t } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -18,13 +18,27 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const [settings, stats] = await Promise.all([getSettings(), getStats()]);
+  const [settings, stats, liveTotals, projects, events] = await Promise.all([
+    getSettings(),
+    getStats(),
+    getLiveTotals(),
+    getProjects(),
+    getEvents(),
+  ]);
 
   return (
     <>
       <AboutHeader />
       <About settings={settings} hideHeading />
-      <Stats stats={stats} />
+      <Stats
+        stats={stats}
+        liveTotals={liveTotals}
+        counts={{
+          activeProjects: projects.filter((p) => p.status === "ongoing").length,
+          completedProjects: projects.filter((p) => p.status === "completed").length,
+          upcomingEvents: events.filter((e) => e.status !== "past").length,
+        }}
+      />
       <MembershipCTA settings={settings} />
     </>
   );

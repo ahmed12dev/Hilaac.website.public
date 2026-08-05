@@ -28,6 +28,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Allowed dev origins: avoids future Next.js warning when accessing the
+  // site via the LAN IP. Update if you run the dev server on a different port.
+  allowedDevOrigins: ["http://localhost:3101", "http://192.168.18.113:3101"],
 };
 
 export default nextConfig;

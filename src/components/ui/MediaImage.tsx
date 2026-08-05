@@ -51,7 +51,7 @@ export function MediaImage({
           aria-hidden
         />
         <Image
-          src="/images/logo.webp"
+          src="/images/logo-circle.webp"
           alt=""
           width={120}
           height={120}

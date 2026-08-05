@@ -172,15 +172,15 @@ export function Hero({ settings, stats }: { settings: SiteSettings; stats: StatI
               <motion.div
                 animate={reduce ? undefined : { y: [0, -16, 0] }}
                 transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-                className="relative grid h-72 w-72 place-items-center rounded-full bg-white/95 shadow-gold-lg ring-1 ring-gold-400/50 backdrop-blur xl:h-80 xl:w-80"
+                className="relative grid h-72 w-72 place-items-center overflow-hidden rounded-full shadow-gold-lg ring-2 ring-gold-400/60 xl:h-80 xl:w-80"
               >
                 <Image
-                  src="/images/logo.webp"
+                  src="/images/logo-circle.webp"
                   alt="Xisbiga Hilaac"
                   width={320}
                   height={320}
                   priority
-                  className="h-56 w-56 object-contain xl:h-64 xl:w-64"
+                  className="h-full w-full object-cover"
                 />
               </motion.div>
             </div>

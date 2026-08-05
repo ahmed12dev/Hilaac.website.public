@@ -29,11 +29,11 @@ export const fallbackSettings: SiteSettings = {
     so: "Xisbiga Hilaac wuxuu u taagan yahay dowladnimo daacad ah, dhalinyaro fursado leh, iyo dalka oo dhan oo isku xiran — muwaadin walba cod buuxa leh.",
     en: "Hilaac stands for honest governance, opportunity for our youth, and a connected nation — where every citizen has a full voice.",
   },
-  logo: "/images/logo.webp",
+  logo: "/images/logo-circle.webp",
   heroImage: "/images/flag.webp",
   heroSlides: [
     { src: "/images/flag.webp", captionSo: "Calanka Xisbiga Hilaac", captionEn: "The Hilaac party flag" },
-    { src: "/images/logo.webp", captionSo: "Astaanta Xisbiga", captionEn: "The party emblem" },
+    { src: "/images/logo-circle.webp", captionSo: "Astaanta Xisbiga", captionEn: "The party emblem" },
   ],
   about: {
     history: {
@@ -558,13 +558,13 @@ export const fallbackEvents: PartyEvent[] = [
 
 export const fallbackGallery: GalleryItem[] = [
   { id: "g1", type: "photo", src: "/images/flag.webp", thumb: "/images/flag.webp", album: "Olole", title: { so: "Furitaanka ololaha", en: "Campaign launch" }, width: 1600, height: 1000 },
-  { id: "g2", type: "photo", src: "/images/logo.webp", thumb: "/images/logo.webp", album: "Astaan", title: { so: "Astaanta xisbiga", en: "Party emblem" }, width: 1200, height: 1200 },
+  { id: "g2", type: "photo", src: "/images/logo-circle.webp", thumb: "/images/logo-circle.webp", album: "Astaan", title: { so: "Astaanta xisbiga", en: "Party emblem" }, width: 1200, height: 1200 },
   { id: "g3", type: "photo", src: "/images/flag.webp", thumb: "/images/flag.webp", album: "Bulsho", title: { so: "Kulanka bulshada", en: "Community meeting" }, width: 1600, height: 1200 },
-  { id: "g4", type: "photo", src: "/images/logo.webp", thumb: "/images/logo.webp", album: "Dhalinyaro", title: { so: "Shirka dhalinyarada", en: "Youth summit" }, width: 1000, height: 1400 },
+  { id: "g4", type: "photo", src: "/images/logo-circle.webp", thumb: "/images/logo-circle.webp", album: "Dhalinyaro", title: { so: "Shirka dhalinyarada", en: "Youth summit" }, width: 1000, height: 1400 },
   { id: "g5", type: "photo", src: "/images/flag.webp", thumb: "/images/flag.webp", album: "Gobollada", title: { so: "Booqasho gobol", en: "Regional visit" }, width: 1600, height: 900 },
-  { id: "g6", type: "photo", src: "/images/logo.webp", thumb: "/images/logo.webp", album: "Olole", title: { so: "Diiwaangelinta xubnaha", en: "Member registration" }, width: 1200, height: 1500 },
+  { id: "g6", type: "photo", src: "/images/logo-circle.webp", thumb: "/images/logo-circle.webp", album: "Olole", title: { so: "Diiwaangelinta xubnaha", en: "Member registration" }, width: 1200, height: 1500 },
   { id: "g7", type: "photo", src: "/images/flag.webp", thumb: "/images/flag.webp", album: "Bulsho", title: { so: "Gurmadka abaaraha", en: "Drought relief" }, width: 1600, height: 1100 },
-  { id: "g8", type: "photo", src: "/images/logo.webp", thumb: "/images/logo.webp", album: "Astaan", title: { so: "Calanka", en: "The flag" }, width: 1400, height: 1000 },
+  { id: "g8", type: "photo", src: "/images/logo-circle.webp", thumb: "/images/logo-circle.webp", album: "Astaan", title: { so: "Calanka", en: "The flag" }, width: 1400, height: 1000 },
 ];
 
 export const fallbackTestimonials: Testimonial[] = [

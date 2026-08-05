@@ -14,13 +14,13 @@ export default function NotFound() {
       <div className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-antique-500/18 blur-[110px]" aria-hidden />
 
       <div className="relative text-center">
-        <span className="mx-auto mb-8 grid h-24 w-24 place-items-center rounded-full bg-white shadow-gold ring-2 ring-gold-500/50">
+        <span className="mx-auto mb-8 grid h-24 w-24 place-items-center overflow-hidden rounded-full shadow-gold ring-2 ring-gold-500/50">
           <Image
-            src="/images/logo.webp"
+            src="/images/logo-circle.webp"
             alt=""
             width={96}
             height={96}
-            className="h-18 w-18 object-contain"
+            className="h-full w-full object-cover"
             aria-hidden
           />
         </span>
