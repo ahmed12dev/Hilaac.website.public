@@ -172,29 +172,13 @@ export interface SiteSettings {
 }
 
 /**
- * Live figures computed by the backend from the same tables the admin
- * dashboard writes — member counts come straight from `registrations`.
+ * Live membership totals from the registration backend (counts only —
+ * no personal data crosses the boundary).
  */
-export interface Overview {
+export interface LiveTotals {
   totalMembers: number;
-  membersThisMonth: number;
-  membersThisWeek: number;
   totalRegions: number;
   totalDistricts: number;
-  totalCountries: number;
-  maleMembers: number;
-  femaleMembers: number;
-  activeProjects: number;
-  completedProjects: number;
-  totalProjects: number;
-  totalNews: number;
-  totalEvents: number;
-  upcomingEventsCount: number;
-  totalLeaders: number;
-  totalMedia: number;
-  visitorsToday: number;
-  latestNews: NewsArticle[];
-  upcomingEvents: PartyEvent[];
 }
 
 export interface Paginated<T> {

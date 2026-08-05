@@ -60,7 +60,7 @@ export default async function ArticlePage({ params }: PageProps) {
     publisher: {
       "@type": "Organization",
       name: "Xisbiga Hilaac",
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo.webp` },
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo-circle.webp` },
     },
     mainEntityOfPage: `${SITE_URL}/news/${slug}`,
   };

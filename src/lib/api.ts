@@ -36,8 +36,8 @@ import type {
   GalleryItem,
   Leader,
   NewsArticle,
+  LiveTotals,
   NewsCategory,
-  Overview,
   Paginated,
   PartyEvent,
   Project,
@@ -130,19 +130,30 @@ export async function getSettings(): Promise<SiteSettings> {
   };
 }
 
-export async function getStats(): Promise<StatItem[]> {
-  return nonEmpty(toArray<StatItem>(await request("stats")), fallbackStats);
+/**
+ * Live membership totals from the registration backend's single read-only
+ * endpoint (`GET /api/public/stats`). Counts only — no personal data crosses
+ * the boundary. Returns null when the backend is unreachable, so callers can
+ * fall back to bundled figures rather than showing zeros.
+ */
+export async function getLiveTotals(): Promise<LiveTotals | null> {
+  const data = await request<LiveTotals>("stats");
+  if (!data || typeof data.totalMembers !== "number") return null;
+  return {
+    totalMembers: data.totalMembers,
+    totalRegions: data.totalRegions,
+    totalDistricts: data.totalDistricts,
+  };
 }
 
-/**
- * Live homepage figures. Member/region/district counts are computed by the
- * backend from the `registrations` table the dashboard manages, so they always
- * reflect how many people have actually joined.
- *
- * `revalidate: 30` keeps them near-real-time without hammering the database.
- */
-export async function getOverview(): Promise<Overview | null> {
-  return await request<Overview>("overview");
+export async function getStats(): Promise<StatItem[]> {
+  const totals = await getLiveTotals();
+  if (!totals) return fallbackStats;
+  return [
+    { id: "members", icon: "users", value: totals.totalMembers, label: { so: "Xubno Diiwaangashan", en: "Registered Members" } },
+    { id: "regions", icon: "map", value: totals.totalRegions, label: { so: "Gobol", en: "Regions" } },
+    { id: "districts", icon: "map", value: totals.totalDistricts, label: { so: "Degmo", en: "Districts" } },
+  ];
 }
 
 /* ───────────────────────────── Leadership ───────────────────────────── */

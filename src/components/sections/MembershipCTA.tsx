@@ -85,13 +85,13 @@ export function MembershipCTA({ settings }: { settings: SiteSettings }) {
 
               {/* Emblem */}
               <div className="hidden justify-center lg:col-span-4 lg:flex">
-                <div className="relative grid h-56 w-56 place-items-center rounded-full bg-white/95 shadow-2xl ring-8 ring-white/30">
+                <div className="relative grid h-56 w-56 place-items-center overflow-hidden rounded-full shadow-2xl ring-8 ring-white/40">
                   <Image
-                    src="/images/logo.webp"
+                    src="/images/logo-circle.webp"
                     alt="Xisbiga Hilaac"
                     width={224}
                     height={224}
-                    className="h-44 w-44 object-contain"
+                    className="h-full w-full object-cover"
                   />
                 </div>
               </div>
