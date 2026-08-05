@@ -110,6 +110,13 @@ export const dictionary = {
     "join.another": "Diiwaangeli qof kale",
     "join.required": "Waa loo baahan yahay",
 
+    "admin.badge": "Gelitaanka Maamulka",
+    "admin.title": "Maamulka Xisbiga Hilaac",
+    "admin.text": "Boggan waxaa loogu talagalay maamulayaasha xisbiga oo kaliya. Waxaa lagu wareejinayaa bogga gelitaanka.",
+    "admin.cta": "Gal Maamulka",
+    "admin.autoRedirect": "Si toos ah ayaa lagu wareejinayaa…",
+    "admin.redirecting": "Waa lagu wareejinayaa…",
+
     "stats.title": "Hilaac Tirooyin Ahaan",
     "stats.live": "Xog toos ah oo nidaamka ka timid",
 
@@ -264,6 +271,13 @@ export const dictionary = {
     "join.successNote": "Use this number when verifying your membership card.",
     "join.another": "Register someone else",
     "join.required": "Required",
+
+    "admin.badge": "Administrator access",
+    "admin.title": "Xisbiga Hilaac Admin",
+    "admin.text": "This area is for party administrators only. You are being taken to the sign-in page.",
+    "admin.cta": "Go to admin login",
+    "admin.autoRedirect": "Redirecting automatically…",
+    "admin.redirecting": "Redirecting…",
 
     "stats.title": "Hilaac in Numbers",
     "stats.live": "Live data from the membership system",
