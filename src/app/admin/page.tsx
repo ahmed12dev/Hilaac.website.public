@@ -1,20 +1,25 @@
 import type { Metadata } from "next";
-import { AdminGateway } from "./AdminGateway";
+import { redirect } from "next/navigation";
+import { currentAdmin } from "@/lib/server/auth";
+import { AdminLogin } from "./AdminLogin";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Admin",
-  description: "Administrator access for Xisbiga Hilaac.",
+  description: "Website administration for Xisbiga Hilaac.",
   robots: { index: false, follow: false },
 };
 
 /**
- * /admin — the door to the management dashboard.
+ * /admin — the WEBSITE's own sign-in.
  *
- * The dashboard is a separate application on its own host, so this page sends
- * administrators there rather than embedding a second login. NEXT_PUBLIC_ADMIN_URL
- * points at it; without that, it falls back to the registration system's own
- * admin panel.
+ * This is not the registration system's admin panel. It has its own accounts
+ * (`site_admins`) and manages website content only. Registration data stays
+ * entirely inside the registration system.
  */
-export default function AdminPage() {
-  return <AdminGateway />;
+export default async function AdminPage() {
+  const admin = await currentAdmin();
+  if (admin) redirect("/admin/dashboard");
+  return <AdminLogin />;
 }

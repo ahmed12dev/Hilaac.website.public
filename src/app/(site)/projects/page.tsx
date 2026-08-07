@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getProjects } from "@/lib/api";
+import { getContentProjects } from "@/lib/api";
 import { ProjectsBrowser } from "./ProjectsBrowser";
 
 export const revalidate = 300;
@@ -12,6 +12,6 @@ export const metadata: Metadata = {
 };
 
 export default async function ProjectsPage() {
-  const projects = await getProjects();
+  const projects = await getContentProjects();
   return <ProjectsBrowser projects={projects} />;
 }

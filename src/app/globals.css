@@ -216,3 +216,50 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ════════════════════════════════════════════════════════════
+   Admin theme
+   Applied by the admin layout only. Adopts the palette from the
+   standalone `hilaac admin dashboard` project: deeper navy-black
+   surfaces with antique gold, rather than the website's amber.
+
+   Redefining the tokens is enough — Tailwind compiles utilities
+   to var() references, so every existing class flips with them.
+   ════════════════════════════════════════════════════════════ */
+.admin-theme {
+  /* Surfaces: #0B0F19 page, #131A29 cards */
+  --color-ink-950: #0b0f19;
+  --color-ink-900: #131a29;
+  --color-ink-800: #1a2233;
+  --color-ink-700: #232d42;
+  --color-ink-600: #33405c;
+  --color-ink-500: #56638a;
+  --color-ink-400: #8390b3;
+  --color-ink-300: #b3bcd6;
+  --color-ink-200: #d7dcea;
+  --color-ink-100: #eef1f7;
+
+  /* Antique gold + bright yellow */
+  --color-gold-300: #f4c430;
+  --color-gold-400: #e2b93a;
+  --color-gold-500: #d4af37;
+  --color-gold-600: #b8942c;
+  --color-gold-700: #8f7222;
+
+  --shadow-gold: 0 0 0 1px rgba(212, 175, 55, 0.18), 0 18px 46px -22px rgba(212, 175, 55, 0.55);
+  --shadow-gold-lg: 0 0 0 1px rgba(212, 175, 55, 0.3), 0 34px 80px -30px rgba(212, 175, 55, 0.75);
+  --shadow-soft: 0 24px 60px -34px rgba(0, 0, 0, 0.85);
+
+  color-scheme: dark;
+}
+
+/* The gradient utilities carry literal hex, so they need their own override. */
+.admin-theme .bg-gold-gradient {
+  background-image: linear-gradient(135deg, #f4c430 0%, #d4af37 52%, #b8942c 100%);
+}
+.admin-theme .text-gradient-gold {
+  background-image: linear-gradient(110deg, #f4c430 0%, #d4af37 45%, #f6e09a 100%);
+}
+.admin-theme .hairline-gold {
+  background-image: linear-gradient(90deg, transparent, #d4af37, transparent);
+}

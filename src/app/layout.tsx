@@ -119,12 +119,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
-          <LanguageProvider>
-            <ScrollProgress />
-            <Navbar />
-            <main id="main">{children}</main>
-            <Footer settings={settings} />
-          </LanguageProvider>
+          {/* The public navbar and footer live in (site)/layout.tsx, not here,
+              so admin screens render on their own without site chrome. */}
+          <LanguageProvider>{children}</LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

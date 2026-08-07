@@ -10,12 +10,12 @@ import { ProjectsPreview } from "@/components/sections/ProjectsPreview";
 import { Stats } from "@/components/sections/Stats";
 import { Testimonials } from "@/components/sections/Testimonials";
 import {
-  getEvents,
-  getGallery,
-  getLeaders,
+  getContentEvents,
+  getContentGallery,
+  getContentLeaders,
   getLiveTotals,
   getNews,
-  getProjects,
+  getContentProjects,
   getSettings,
   getStats,
   getTestimonials,
@@ -32,11 +32,11 @@ export default async function HomePage() {
       getSettings(),
       getStats(),
       getLiveTotals(),
-      getLeaders(),
+      getContentLeaders(),
       getNews({ pageSize: 4 }),
-      getProjects(),
-      getEvents(),
-      getGallery(),
+      getContentProjects(),
+      getContentEvents(),
+      getContentGallery(),
       getTestimonials(),
     ]);
 

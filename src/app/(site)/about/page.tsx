@@ -3,7 +3,7 @@ import { About } from "@/components/sections/About";
 import { MembershipCTA } from "@/components/sections/MembershipCTA";
 import { Stats } from "@/components/sections/Stats";
 import { AboutHeader } from "./AboutHeader";
-import { getEvents, getLiveTotals, getProjects, getSettings, getStats } from "@/lib/api";
+import { getContentEvents, getLiveTotals, getContentProjects, getSettings, getStats } from "@/lib/api";
 import { t } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -22,8 +22,8 @@ export default async function AboutPage() {
     getSettings(),
     getStats(),
     getLiveTotals(),
-    getProjects(),
-    getEvents(),
+    getContentProjects(),
+    getContentEvents(),
   ]);
 
   return (

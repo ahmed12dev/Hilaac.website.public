@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Events } from "@/components/sections/Events";
 import { MembershipCTA } from "@/components/sections/MembershipCTA";
-import { getEvents, getSettings } from "@/lib/api";
+import { getContentEvents, getSettings } from "@/lib/api";
 import { EventsHeader } from "./EventsHeader";
 
 export const revalidate = 180;
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EventsPage() {
-  const [events, settings] = await Promise.all([getEvents(), getSettings()]);
+  const [events, settings] = await Promise.all([getContentEvents(), getSettings()]);
 
   return (
     <>

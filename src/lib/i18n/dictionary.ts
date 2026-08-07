@@ -112,10 +112,9 @@ export const dictionary = {
 
     "admin.badge": "Gelitaanka Maamulka",
     "admin.title": "Maamulka Xisbiga Hilaac",
-    "admin.text": "Boggan waxaa loogu talagalay maamulayaasha xisbiga oo kaliya. Waxaa lagu wareejinayaa bogga gelitaanka.",
+    "admin.subtitle": "Maamulka websaydka — gal si aad u maamusho nuxurka",
+    "admin.note": "Kani waa maamulka websaydka oo keliya. Nidaamka diiwaangelintu wuxuu leeyahay gelitaankiisa gaarka ah.",
     "admin.cta": "Gal Maamulka",
-    "admin.autoRedirect": "Si toos ah ayaa lagu wareejinayaa…",
-    "admin.redirecting": "Waa lagu wareejinayaa…",
 
     "stats.title": "Hilaac Tirooyin Ahaan",
     "stats.live": "Xog toos ah oo nidaamka ka timid",
@@ -274,10 +273,9 @@ export const dictionary = {
 
     "admin.badge": "Administrator access",
     "admin.title": "Xisbiga Hilaac Admin",
-    "admin.text": "This area is for party administrators only. You are being taken to the sign-in page.",
-    "admin.cta": "Go to admin login",
-    "admin.autoRedirect": "Redirecting automatically…",
-    "admin.redirecting": "Redirecting…",
+    "admin.cta": "Sign in",
+    "admin.subtitle": "Website administration — sign in to manage content",
+    "admin.note": "This is the website admin only. The registration system has its own separate login.",
 
     "stats.title": "Hilaac in Numbers",
     "stats.live": "Live data from the membership system",

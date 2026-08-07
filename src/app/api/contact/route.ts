@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { API_BASE } from "@/lib/api";
+import { addMessage } from "@/lib/server/collections";
+
+export const dynamic = "force-dynamic";
 
 interface ContactPayload {
   name?: string;
@@ -12,8 +14,11 @@ interface ContactPayload {
 }
 
 /**
- * Forwards contact-form submissions to the admin dashboard
- * (POST <API_BASE>/api/public/contact) so messages land in the inbox there.
+ * Contact form.
+ *
+ * Messages belong to this website, so they are stored in `site_messages` and
+ * show up in the website admin's Messages screen. Nothing is sent to the
+ * registration system.
  */
 export async function POST(request: Request) {
   let payload: ContactPayload;
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
 
-  // Silently accept bot submissions without forwarding them.
+  // Silently accept bot submissions without storing them.
   if (payload.website) return NextResponse.json({ ok: true });
 
   const name = (payload.name || "").trim();
@@ -34,29 +39,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "validation_failed" }, { status: 400 });
   }
 
-  if (!API_BASE) {
-    // No backend configured — accept so the form gives useful feedback in dev.
-    return NextResponse.json({ ok: true, forwarded: false });
-  }
-
   try {
-    const res = await fetch(`${API_BASE}/api/public/contact`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        email,
-        phone: (payload.phone || "").trim(),
-        subject: (payload.subject || "").trim(),
-        message,
-      }),
+    const id = await addMessage({
+      name,
+      email,
+      phone: (payload.phone || "").trim(),
+      subject: (payload.subject || "").trim(),
+      message,
     });
-
-    if (!res.ok) {
-      return NextResponse.json({ ok: false, error: "upstream_failed" }, { status: 502 });
-    }
-    return NextResponse.json({ ok: true, forwarded: true });
+    return NextResponse.json({ ok: true, id }, { status: 201 });
   } catch {
-    return NextResponse.json({ ok: false, error: "upstream_unreachable" }, { status: 502 });
+    return NextResponse.json(
+      { ok: false, error: "unavailable", message: "Fariinta lama kaydin. / Message could not be saved." },
+      { status: 503 },
+    );
   }
 }

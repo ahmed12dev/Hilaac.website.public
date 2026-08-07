@@ -95,13 +95,3 @@ export function joinUrl(fromSettings?: string | null): string {
   return "/join";
 }
 
-/**
- * Where /admin sends an administrator: the management dashboard's login.
- * Falls back to the registration system's own admin panel when the dashboard
- * host isn't configured, so the link is never dead.
- */
-export function adminUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_ADMIN_URL;
-  if (explicit) return explicit;
-  return mediaUrl('/admin.html') ?? '/';
-}

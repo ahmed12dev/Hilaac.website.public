@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Leadership } from "@/components/sections/Leadership";
 import { MembershipCTA } from "@/components/sections/MembershipCTA";
-import { getLeaders, getSettings } from "@/lib/api";
+import { getContentLeaders, getSettings } from "@/lib/api";
 import { LeadershipHeader } from "./LeadershipHeader";
 
 export const revalidate = 300;
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LeadershipPage() {
-  const [leaders, settings] = await Promise.all([getLeaders(), getSettings()]);
+  const [leaders, settings] = await Promise.all([getContentLeaders(), getSettings()]);
 
   return (
     <>

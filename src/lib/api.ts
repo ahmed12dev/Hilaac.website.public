@@ -1,3 +1,4 @@
+import "server-only";
 /**
  * REST client for the Xisbiga Hilaac admin dashboard (Node.js + PostgreSQL).
  *
@@ -177,16 +178,17 @@ export async function getNews(query: NewsQuery = {}): Promise<Paginated<NewsArti
   const page = Math.max(1, query.page ?? 1);
   const pageSize = query.pageSize ?? 9;
 
-  const remote = await request<unknown>("news", { ...query, page, pageSize });
-  const remoteArray = toArray<NewsArticle>(remote);
-
-  // Backend already paginated for us.
-  if (remote && typeof remote === "object" && "totalPages" in (remote as object)) {
-    return remote as Paginated<NewsArticle>;
+  // Articles come from this website's own database, written by its admin
+  // dashboard. Bundled content is used only while the table is still empty.
+  let all: NewsArticle[];
+  try {
+    const rows = (await content.publicNews(200)) as unknown as NewsArticle[];
+    all = rows.length ? rows : fallbackNews;
+  } catch {
+    all = fallbackNews;
   }
 
-  const all = remoteArray?.length ? remoteArray : filterNewsLocally(fallbackNews, query);
-  return paginate(all, page, pageSize);
+  return paginate(filterNewsLocally(all, query), page, pageSize);
 }
 
 function filterNewsLocally(list: NewsArticle[], query: NewsQuery): NewsArticle[] {
@@ -216,8 +218,13 @@ function paginate<T>(items: T[], page: number, pageSize: number): Paginated<T> {
 }
 
 export async function getArticle(slug: string): Promise<NewsArticle | null> {
-  const remote = await request<NewsArticle>(`news/${encodeURIComponent(slug)}`);
-  if (remote?.slug) return remote;
+  try {
+    const rows = (await content.publicNews(200)) as unknown as NewsArticle[];
+    const found = rows.find((a) => a.slug === slug);
+    if (found) return found;
+  } catch {
+    /* fall through to bundled content */
+  }
   return fallbackNews.find((a) => a.slug === slug) ?? null;
 }
 
@@ -227,8 +234,13 @@ export async function getNewsCategories(): Promise<NewsCategory[]> {
 
 /** Slugs used for generateStaticParams / sitemap. */
 export async function getAllNewsSlugs(): Promise<string[]> {
-  const remote = toArray<NewsArticle>(await request("news", { pageSize: 200 }));
-  return (remote?.length ? remote : fallbackNews).map((a) => a.slug);
+  try {
+    const rows = await content.publicNews(200);
+    if (rows.length) return rows.map((a) => a.slug);
+  } catch {
+    /* fall through to bundled content */
+  }
+  return fallbackNews.map((a) => a.slug);
 }
 
 /* ───────────────────────────── Projects ───────────────────────────── */
@@ -273,4 +285,42 @@ export async function getGallery(): Promise<GalleryItem[]> {
 
 export async function getTestimonials(): Promise<Testimonial[]> {
   return nonEmpty(toArray<Testimonial>(await request("testimonials")), fallbackTestimonials);
+}
+
+
+/* ═════════════ website content — read from our own database ═════════════
+   The admin dashboard writes these tables, so an edit there is live here on
+   the next request. Bundled fallback content is used only when the database
+   is empty or unreachable, so the site never renders blank.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+import * as content from "./server/content";
+
+async function fromDb<T>(read: () => Promise<T[]>, fallback: T[]): Promise<T[]> {
+  try {
+    const rows = await read();
+    return rows.length ? rows : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getContentNews(limit = 50): Promise<NewsArticle[]> {
+  return fromDb(() => content.publicNews(limit) as Promise<NewsArticle[]>, fallbackNews);
+}
+
+export async function getContentProjects(status?: string): Promise<Project[]> {
+  return fromDb(() => content.publicProjects(status) as Promise<Project[]>, fallbackProjects);
+}
+
+export async function getContentEvents(): Promise<PartyEvent[]> {
+  return fromDb(() => content.publicEvents() as Promise<PartyEvent[]>, fallbackEvents);
+}
+
+export async function getContentLeaders(): Promise<Leader[]> {
+  return fromDb(() => content.publicLeaders() as Promise<Leader[]>, fallbackLeaders);
+}
+
+export async function getContentGallery(): Promise<GalleryItem[]> {
+  return fromDb(() => content.publicGallery() as Promise<GalleryItem[]>, fallbackGallery);
 }
