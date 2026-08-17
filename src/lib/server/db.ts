@@ -24,10 +24,12 @@ let ready: Promise<void> | null = null;
 function connectionConfig() {
   const url = process.env.DATABASE_URL;
   if (url) {
-    // Managed Postgres (Railway/Render/Neon) generally requires SSL; a local
-    // or private-network host generally does not.
-    const local = /localhost|127\.0\.0\.1|\.internal([:/]|$)/.test(url);
-    return { connectionString: url, ssl: local ? undefined : { rejectUnauthorized: false } };
+    const isInternal = /localhost|127\.0\.0\.1|\.internal([:/]|$)/.test(url);
+    const hasSslDisabled = url.includes("sslmode=disable");
+    return {
+      connectionString: url,
+      ssl: isInternal || hasSslDisabled ? undefined : { rejectUnauthorized: false },
+    };
   }
   return {
     host: process.env.PGHOST || "localhost",
