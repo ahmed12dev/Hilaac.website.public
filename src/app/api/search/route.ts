@@ -66,11 +66,11 @@ export async function GET(request: Request) {
         meta: e.status,
       })),
     ...leaders
-      .filter((l) => matches(l.name, t(l.role, locale), l.bio ? t(l.bio, locale) : ""))
+      .filter((l) => matches(l.name, t(l.position, locale), l.bio ? t(l.bio, locale) : ""))
       .map<SearchHit>((l) => ({
         id: l.id,
         type: "leader",
-        title: `${l.name} — ${t(l.role, locale)}`,
+        title: `${l.name} — ${t(l.position, locale)}`,
         excerpt: l.bio ? t(l.bio, locale) : "Xubin ka tirsan Golaha Sare ee Xisbiga Hilaac",
         href: `/leadership#${l.id}`,
         meta: "Leadership",
