@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, FileText, Loader2, Newspaper, Search, X } from "lucide-react";
+import { CalendarDays, FileText, Loader2, Newspaper, Search, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { SearchHit } from "@/app/api/search/route";
@@ -11,6 +11,7 @@ const ICONS = {
   news: Newspaper,
   project: FileText,
   event: CalendarDays,
+  leader: Users,
 } as const;
 
 export function SearchDialog({ open, onClose }: { open: boolean; onClose: () => void }) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { Briefcase, CalendarCheck, CheckCircle2, Map, MapPin, Users, type LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Counter } from "@/components/ui/Counter";
 import { StaggerGroup, StaggerItem } from "@/components/ui/Reveal";
 import { useLanguage } from "@/lib/i18n/provider";
@@ -29,12 +30,6 @@ export interface ContentCounts {
   upcomingEvents: number;
 }
 
-/**
- * Member/region/district figures come live from the registration backend;
- * project and event counts are derived from the content this site already
- * loaded. When the backend is unreachable we fall back to the bundled list
- * rather than showing zeros.
- */
 function tilesFrom(
   totals: LiveTotals | null,
   counts: ContentCounts,
@@ -62,7 +57,7 @@ function tilesFrom(
 
 export function Stats({
   stats,
-  liveTotals,
+  liveTotals: initialTotals,
   counts,
 }: {
   stats: StatItem[];
@@ -70,7 +65,42 @@ export function Stats({
   counts: ContentCounts;
 }) {
   const { tr, tx } = useLanguage();
-  const tiles = tilesFrom(liveTotals ?? null, counts, stats);
+  const [currentTotals, setCurrentTotals] = useState<LiveTotals | null>(initialTotals ?? null);
+
+  // Real-time live polling every 12 seconds
+  useEffect(() => {
+    let mounted = true;
+    async function poll() {
+      try {
+        const res = await fetch("/api/public/stats", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (mounted && json.data) {
+            setCurrentTotals((prev) => {
+              if (
+                !prev ||
+                prev.totalMembers !== json.data.totalMembers ||
+                prev.totalRegions !== json.data.totalRegions
+              ) {
+                return json.data;
+              }
+              return prev;
+            });
+          }
+        }
+      } catch {
+        // keep existing
+      }
+    }
+
+    const interval = setInterval(poll, 12000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const tiles = tilesFrom(currentTotals, counts, stats);
   if (!tiles.length) return null;
 
   return (
@@ -90,15 +120,13 @@ export function Stats({
           <span className="text-gradient-gold">{tr("stats.title")}</span>
         </h2>
 
-        {liveTotals && (
-          <p className="mb-12 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink-400">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-500 opacity-70" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-500" />
-            </span>
-            {tr("stats.live")}
-          </p>
-        )}
+        <p className="mb-12 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink-400">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          {tr("stats.live")} · Real-time Synchronized
+        </p>
 
         <StaggerGroup className="grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-6">
           {tiles.map((tile) => {

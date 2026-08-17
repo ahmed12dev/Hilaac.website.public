@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getEvents, getNews, getProjects } from "@/lib/api";
+import { getEvents, getLeaders, getNews, getProjects } from "@/lib/api";
 import { t } from "@/lib/utils";
 import type { Locale } from "@/lib/types";
 
-export const revalidate = 120;
+export const revalidate = 60;
 
 export interface SearchHit {
   id: string;
-  type: "news" | "project" | "event";
+  type: "news" | "project" | "event" | "leader";
   title: string;
   excerpt: string;
   href: string;
@@ -15,9 +15,7 @@ export interface SearchHit {
 }
 
 /**
- * Site-wide search across news, projects and events. Content is pulled through
- * the same API layer the pages use, so it works with the admin backend or the
- * bundled fallback content.
+ * Site-wide real-time search across news, projects, events, and leadership.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -26,14 +24,15 @@ export async function GET(request: Request) {
 
   if (query.length < 2) return NextResponse.json({ hits: [] });
 
-  const [news, projects, events] = await Promise.all([
+  const [news, projects, events, leaders] = await Promise.all([
     getNews({ pageSize: 100 }),
     getProjects(),
     getEvents(),
+    getLeaders(),
   ]);
 
-  const matches = (...fields: string[]) =>
-    fields.some((field) => field.toLowerCase().includes(query));
+  const matches = (...fields: (string | undefined | null)[]) =>
+    fields.some((field) => field && field.toLowerCase().includes(query));
 
   const hits: SearchHit[] = [
     ...news.items
@@ -57,7 +56,7 @@ export async function GET(request: Request) {
         meta: p.status,
       })),
     ...events
-      .filter((e) => matches(t(e.title, locale), t(e.description, locale)))
+      .filter((e) => matches(t(e.title, locale), t(e.description, locale), e.location ? t(e.location, locale) : ""))
       .map<SearchHit>((e) => ({
         id: e.id,
         type: "event",
@@ -66,7 +65,17 @@ export async function GET(request: Request) {
         href: `/events#${e.slug}`,
         meta: e.status,
       })),
+    ...leaders
+      .filter((l) => matches(l.name, t(l.role, locale), l.bio ? t(l.bio, locale) : ""))
+      .map<SearchHit>((l) => ({
+        id: l.id,
+        type: "leader",
+        title: `${l.name} — ${t(l.role, locale)}`,
+        excerpt: l.bio ? t(l.bio, locale) : "Xubin ka tirsan Golaha Sare ee Xisbiga Hilaac",
+        href: `/leadership#${l.id}`,
+        meta: "Leadership",
+      })),
   ];
 
-  return NextResponse.json({ hits: hits.slice(0, 12) });
+  return NextResponse.json({ hits: hits.slice(0, 16) });
 }

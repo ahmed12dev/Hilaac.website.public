@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Newspaper,
   Settings,
+  Users,
   UsersRound,
   X,
   type LucideIcon,
@@ -46,10 +47,11 @@ const GROUPS: { title: string; items: Item[] }[] = [
     ],
   },
   {
-    title: "Site",
+    title: "Administration",
     items: [
+      { href: "/admin/dashboard/members", label: "Members Registry", icon: Users },
       { href: "/admin/dashboard/messages", label: "Messages", icon: MessageSquare },
-      { href: "/admin/dashboard/settings", label: "Settings", icon: Settings, soon: true },
+      { href: "/admin/dashboard/settings", label: "Site Settings", icon: Settings },
     ],
   },
 ];
