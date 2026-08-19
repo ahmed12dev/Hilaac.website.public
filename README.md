@@ -59,51 +59,68 @@ Copy `.env.example` to `.env.local`:
 
 | Variable | Meaning |
 |---|---|
-| `NEXT_PUBLIC_API_BASE` | Base URL of the admin backend. **Leave empty to run on bundled fallback content.** |
+| `DATABASE_URL` | **Required.** PostgreSQL for this website's own `site_*` tables. |
+| `SITE_ADMIN_EMAIL` | **Required.** Seeds the first administrator account. |
+| `SITE_ADMIN_PASSWORD` | **Required.** Password for that account. No default exists — if these are unset, nobody can sign in. |
+| `AUTH_SECRET` | Signs the fallback session token used when the database is unreachable. Defaults to `SITE_ADMIN_PASSWORD`. |
 | `NEXT_PUBLIC_SITE_URL` | Canonical public URL — used for SEO metadata, Open Graph and `sitemap.xml`. |
-| `NEXT_PUBLIC_REGISTER_URL` | Where every "Join the Party" button sends visitors (the existing registration app). |
-| `NEXT_PUBLIC_REVALIDATE` | Seconds to cache API responses server-side. Default `300`. |
+| `NEXT_PUBLIC_API_BASE` | The registration system. Live member totals are read from it and `/join` submissions are forwarded to it. Leave empty to run standalone. |
+| `NEXT_PUBLIC_REGISTER_URL` | Sends "Join the Party" to the standalone registration app instead of this site's own `/join`. |
+| `NEXT_PUBLIC_REVALIDATE` | Seconds to cache upstream API responses server-side. Default `300`. |
 
 ---
 
-## Connecting the admin dashboard
+## The admin dashboard
 
-Every section — news, projects, leadership, events, gallery, testimonials, stats and site
-settings — is rendered from the API. Until an endpoint exists the site falls back to the
-bundled content in `src/lib/fallback.ts`, so **nothing ever renders empty**.
+`/admin` is this website's **own** dashboard, with its own accounts and its own database
+tables. It is not the registration system's admin panel, and it cannot read registration data.
 
-Add these read-only endpoints to the existing Node server (`server.js`), all returning JSON:
+The only contact between the two systems is over HTTPS: member totals are read from
+`GET <NEXT_PUBLIC_API_BASE>/api/public/stats`, and `/join` submissions are posted back.
 
-| Method | Path | Returns |
-|---|---|---|
-| GET | `/api/public/settings` | `SiteSettings` |
-| GET | `/api/public/stats` | `StatItem[]` |
-| GET | `/api/public/leadership` | `Leader[]` |
-| GET | `/api/public/news` | `NewsArticle[]` or `Paginated<NewsArticle>` |
-| GET | `/api/public/news/:slug` | `NewsArticle` |
-| GET | `/api/public/news-categories` | `NewsCategory[]` |
-| GET | `/api/public/projects` | `Project[]` |
-| GET | `/api/public/projects/:slug` | `Project` |
-| GET | `/api/public/events` | `PartyEvent[]` |
-| GET | `/api/public/gallery` | `GalleryItem[]` |
-| GET | `/api/public/testimonials` | `Testimonial[]` |
-| POST | `/api/public/contact` | `{ name, email, phone, subject, message }` → stores the message |
-| POST | `/api/public/newsletter` | `{ email }` → stores the subscriber |
+| Screen | What it manages |
+|---|---|
+| Dashboard | Counts across every collection, plus recent activity |
+| Analytics | Member growth, messages over time, regional breakdown, audit trail |
+| News · Projects · Events · Leadership · Gallery · Testimonials | Bilingual content, published/draft per row |
+| Media Library | Image uploads, stored in PostgreSQL and served from `/api/media/:id` |
+| Members Registry | This site's own member records, with CSV import and export |
+| Messages · Subscribers | Contact-form submissions and newsletter sign-ups |
+| Site Settings | Hero, about, contact, socials, announcement banner, slideshow |
+| Administrators | Accounts and owner/editor roles (owners only) |
 
-The exact TypeScript shapes are in **`src/lib/types.ts`** — that file is the contract.
+Every change is written to `site_activity`, so the Analytics screen shows who did what.
 
-Three conveniences are built into the client (`src/lib/api.ts`):
+### Where content comes from
 
-- **Envelopes are unwrapped.** A bare array, `{ data: [...] }` and `{ items: [...] }` all work.
-- **Fields can be bilingual.** Any text field accepts either a plain string or
-  `{ "so": "...", "en": "..." }`. The language toggle picks the right one at runtime.
-- **Partial records are safe.** `settings` is deep-merged over the defaults, so an incomplete
-  admin record can't blank out the page.
+Content is read from this website's own database — `src/lib/server/content.ts` and
+`collections.ts` — and the same rows are exposed read-only at `/api/public/*` for anything
+else that wants them.
 
-Image fields may be absolute URLs or paths relative to `NEXT_PUBLIC_API_BASE`. When a record has
-no image, a branded gold placeholder with the party emblem is shown instead.
+`src/lib/fallback.ts` holds **only** the default site copy used until an administrator saves
+their own. Its content collections are deliberately empty: a page with no rows shows an empty
+state rather than invented articles or invented people.
 
-CORS is not required — all API calls happen server-side during rendering.
+### Uploads
+
+Railway containers have no disk that survives a redeploy, so uploaded images are stored as
+bytes in the `site_media` table and served from `/api/media/:id` with a long cache header.
+JPG, PNG, WebP, GIF and AVIF up to 5 MB. SVG is deliberately rejected — it can carry script,
+and these files are served from the site's own origin.
+
+---
+
+## Deploying on Railway
+
+The service builds from GitHub `main` with Nixpacks and starts with `npm start`.
+
+**One gotcha worth knowing:** Railway sets `NODE_ENV=production`, which makes a bare
+`npm ci` skip `devDependencies`. TypeScript and Tailwind live there and `next build` needs
+both, so the install command in `nixpacks.toml` passes `--include=dev`. Remove that flag and
+every build fails with `Cannot find module 'typescript'`.
+
+The `site_*` tables are created automatically on first database access — there is no
+migration step to run.
 
 ---
 
@@ -116,9 +133,13 @@ src/
     about/  leadership/  news/  projects/  events/  gallery/  contact/
     news/[slug]/              Article detail (SSG + ISR)
     projects/[slug]/          Project detail (SSG + ISR)
+    admin/                    Sign-in and the whole dashboard
+    api/public/[resource]/    Read-only JSON for published content
+    api/media/[id]/           Serves an uploaded image
+    api/site-admin/           Dashboard CRUD (every route requires a session)
     api/search/               Site-wide search across news, projects, events
-    api/contact/              Forwards the contact form to the admin backend
-    api/newsletter/           Forwards newsletter sign-ups
+    api/contact/              Stores a contact-form message
+    api/newsletter/           Stores a newsletter subscriber
     sitemap.ts  robots.ts     SEO
     globals.css               Design tokens + utilities
   components/
@@ -127,9 +148,17 @@ src/
                               Gallery, Stats, Testimonials, MembershipCTA, Contact
     ui/                       Buttons, cards, badges, lightbox, counters, pagination…
   lib/
-    api.ts                    REST client with fallback
-    types.ts                  API contract
-    fallback.ts               Bundled seed content
+    api.ts                    Content readers used by every page
+    types.ts                  Content shapes
+    fallback.ts               Default site copy (content collections are empty)
+    server/
+      db.ts                   Pool, schema and password hashing
+      auth.ts                 Sessions, accounts and roles
+      content.ts              News and projects
+      collections.ts          Events, leadership, gallery, testimonials, messages
+      members.ts              Members registry, CSV import/export
+      media.ts                Image uploads
+      activity.ts             Audit trail and analytics
     i18n/                     Somali + English UI dictionary and provider
     theme.tsx                 Dark / light mode (no flash on first paint)
 ```
@@ -153,47 +182,29 @@ src/
 
 ---
 
-## Deploying
+## Hosting
 
-A standard Next.js 15 app — Vercel detects and builds it with no configuration.
-`vercel.json` only pins the region (Frankfurt, the closest Vercel region to
-Somalia) so server-rendered pages stay fast for visitors there.
+The site runs on **Railway**, building from GitHub `main` and serving with `npm start`.
+See "Deploying on Railway" above for the one build setting that matters.
 
-### Steps
-
-1. Import this repository at [vercel.com/new](https://vercel.com/new)
-2. Leave every build setting on its default — Framework should read **Next.js**
-3. Add the environment variables below
-4. Deploy
-
-### Environment variables
-
-| Variable | Value |
-|---|---|
-| `NEXT_PUBLIC_API_BASE` | `https://www.xisbiga-hilaac.com` |
-| `NEXT_PUBLIC_SITE_URL` | your deployed URL, e.g. `https://xisbiga-hilaac.vercel.app` |
-| `NEXT_PUBLIC_ADMIN_URL` | `https://www.xisbiga-hilaac.com/admin.html` |
-| `NEXT_PUBLIC_REVALIDATE` | `30` |
-
-**No database credentials belong here.** The website reaches PostgreSQL only
-through the registration backend's HTTPS API, so the database stays private to
-that server.
+`vercel.json` is left in place for anyone who wants to deploy a copy to Vercel instead; it
+only pins the region (Frankfurt, the closest to Somalia).
 
 ### How the pieces connect
 
 ```
-This website  ──HTTPS──>  xisbiga-hilaac.com (Node backend)  ──>  PostgreSQL
-                                                                      ^
-                                                          registration system
-                                                          + admin dashboard
+Visitor ──> This website ──> its own PostgreSQL (site_* tables)
+                  │
+                  └──HTTPS──> xisbiga-hilaac.com ──> the registration system's database
+                                (member totals in, /join submissions out)
 ```
 
 | Call | Purpose |
 |---|---|
 | `GET /api/public/stats` | Live member, region and district totals |
-| `POST /api/register` | `/join` submissions land in the same `registrations` table |
+| `POST /api/register` | `/join` submissions land in the registration system |
 | `GET /api/locations` | Region and district options for the join form |
 
-Because the site talks to the backend over HTTPS, it can be hosted anywhere —
-Vercel, Netlify, Cloudflare Pages or a container host — with no change to the
-registration system.
+The two systems share nothing but those HTTPS calls. A website administrator has no access
+to registration data, and a registration-system administrator has no access to this
+dashboard.
