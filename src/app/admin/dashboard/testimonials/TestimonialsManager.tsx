@@ -5,9 +5,9 @@ import type { TestimonialRow } from "@/lib/server/collections";
 import { CollectionManager, PublishedTag, type FieldDef } from "../CollectionManager";
 
 const FIELDS: FieldDef[] = [
-  { key: "name", label: "Name", span: 6 },
-  { key: "rating", label: "Rating (1–5)", type: "number", span: 3 },
-  { key: "sortOrder", label: "Display order", type: "number", span: 3 },
+  { key: "name", label: "Name", span: 4 },
+  { key: "rating", label: "Rating (1–5)", type: "number", span: 4 },
+  { key: "sortOrder", label: "Display order", type: "number", span: 4 },
   { key: "roleSo", label: "Role — Somali", span: 6, placeholder: "Beeraley, Shabeellaha" },
   { key: "roleEn", label: "Role — English", span: 6, placeholder: "Farmer, Shabelle" },
   { key: "quoteSo", label: "Quote — Somali", type: "textarea", rows: 4, span: 6 },

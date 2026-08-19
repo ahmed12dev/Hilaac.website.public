@@ -110,7 +110,9 @@ export async function getSettings(): Promise<SiteSettings> {
   // there is live here on the next request.
   let stored: Partial<SiteSettings> | null = null;
   try {
-    stored = (await content.publicSettings()) as Partial<SiteSettings> | null;
+    // Through unknown: the stored blob is an index-signature record and
+    // SiteSettings is an interface, so neither is assignable to the other.
+    stored = (await content.publicSettings()) as unknown as Partial<SiteSettings> | null;
   } catch {
     stored = null;
   }
