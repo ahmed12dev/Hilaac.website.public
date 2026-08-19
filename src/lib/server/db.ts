@@ -171,7 +171,7 @@ const SCHEMA = `
   /* ── Members registry ─────────────────────────────────────────────
      This website's OWN member records, entered or imported by a website
      administrator. It is deliberately separate from the registration
-     system's `registrations` table, which this app never touches. */
+     system's own registrations table, which this app never touches. */
 
   CREATE SEQUENCE IF NOT EXISTS site_member_seq START 101;
 
