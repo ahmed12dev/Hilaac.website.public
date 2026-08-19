@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, sessionCookieOptions, signIn, signOut } from "@/lib/server/auth";
+import { logActivity } from "@/lib/server/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,8 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    await logActivity(result.admin, "login", "session", "Signed in", result.admin.id);
 
     const res = NextResponse.json({ ok: true, admin: result.admin });
     res.cookies.set(SESSION_COOKIE, result.token, sessionCookieOptions());

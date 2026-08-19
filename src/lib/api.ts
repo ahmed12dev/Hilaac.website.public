@@ -102,32 +102,56 @@ async function request<T>(path: string, query?: Query): Promise<T | null> {
   }
 }
 
-/** Accepts an array or a Paginated envelope and always yields an array. */
-function toArray<T>(value: unknown): T[] | null {
-  if (Array.isArray(value)) return value as T[];
-  if (value && typeof value === "object" && Array.isArray((value as Paginated<T>).items)) {
-    return (value as Paginated<T>).items;
-  }
-  return null;
-}
-
-function nonEmpty<T>(value: T[] | null, fallback: T[]): T[] {
-  return value && value.length ? value : fallback;
-}
-
 /* ───────────────────────────── Settings ───────────────────────────── */
 
 export async function getSettings(): Promise<SiteSettings> {
-  const remote = await request<Partial<SiteSettings>>("settings");
-  if (!remote) return fallbackSettings;
+  // Site settings belong to THIS website, so they are read from its own
+  // database — the same row the dashboard's Settings screen writes. An edit
+  // there is live here on the next request.
+  let stored: Partial<SiteSettings> | null = null;
+  try {
+    stored = (await content.publicSettings()) as Partial<SiteSettings> | null;
+  } catch {
+    stored = null;
+  }
+  if (!stored) return fallbackSettings;
+
   // Deep-merge the branches the UI always reads so a partial admin record
   // can never blank out the page.
   return {
     ...fallbackSettings,
-    ...remote,
-    about: { ...fallbackSettings.about, ...(remote.about ?? {}) },
-    contact: { ...fallbackSettings.contact, ...(remote.contact ?? {}) },
-    socials: { ...fallbackSettings.socials, ...(remote.socials ?? {}) },
+    ...stored,
+    about: { ...fallbackSettings.about, ...(stored.about ?? {}) },
+    contact: { ...fallbackSettings.contact, ...(stored.contact ?? {}) },
+    socials: { ...fallbackSettings.socials, ...(stored.socials ?? {}) },
+  };
+}
+
+/** The announcement banner, when an administrator has switched it on. */
+export interface Announcement {
+  enabled: boolean;
+  textSo: string;
+  textEn: string;
+  link: string;
+}
+
+export async function getAnnouncement(): Promise<Announcement | null> {
+  let stored: Record<string, unknown> | null = null;
+  try {
+    stored = await content.publicSettings();
+  } catch {
+    return null;
+  }
+  const raw = stored?.announcement as Partial<Announcement> | undefined;
+  if (!raw || raw.enabled === false) return null;
+  const textSo = String(raw.textSo || "").trim();
+  const textEn = String(raw.textEn || "").trim();
+  if (!textSo && !textEn) return null;
+  return {
+    enabled: true,
+    textSo: textSo || textEn,
+    textEn: textEn || textSo,
+    link: String(raw.link || "").trim(),
   };
 }
 
@@ -148,7 +172,7 @@ export async function getLiveTotals(): Promise<LiveTotals | null> {
 }
 
 export async function getStats(): Promise<StatItem[]> {
-  const totals = await getLiveTotals();
+  const totals = (await getLiveTotals()) ?? (await getOwnTotals());
   if (!totals) return fallbackStats;
   return [
     { id: "members", icon: "users", value: totals.totalMembers, label: { so: "Xubno Diiwaangashan", en: "Registered Members" } },
@@ -160,7 +184,7 @@ export async function getStats(): Promise<StatItem[]> {
 /* ───────────────────────────── Leadership ───────────────────────────── */
 
 export async function getLeaders(): Promise<Leader[]> {
-  const list = nonEmpty(toArray<Leader>(await request("leadership")), fallbackLeaders);
+  const list = await getContentLeaders();
   return [...list].sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
 }
 
@@ -229,7 +253,31 @@ export async function getArticle(slug: string): Promise<NewsArticle | null> {
 }
 
 export async function getNewsCategories(): Promise<NewsCategory[]> {
-  return nonEmpty(toArray<NewsCategory>(await request("news-categories")), fallbackCategories);
+  // Derived from the articles themselves, so a category appears as soon as an
+  // administrator uses it and disappears when the last article using it goes.
+  try {
+    const rows = await content.publicNews(200);
+    const counts = new Map<string, { name: string; count: number }>();
+    for (const article of rows) {
+      const name = String(article.category || "").trim();
+      if (!name) continue;
+      const slug = article.categorySlug || name.toLowerCase();
+      const entry = counts.get(slug);
+      if (entry) entry.count++;
+      else counts.set(slug, { name, count: 1 });
+    }
+    if (counts.size) {
+      return [...counts.entries()].map(([slug, v]) => ({
+        id: slug,
+        slug,
+        name: v.name,
+        count: v.count,
+      }));
+    }
+  } catch {
+    /* fall through to bundled content */
+  }
+  return fallbackCategories;
 }
 
 /** Slugs used for generateStaticParams / sitemap. */
@@ -246,27 +294,22 @@ export async function getAllNewsSlugs(): Promise<string[]> {
 /* ───────────────────────────── Projects ───────────────────────────── */
 
 export async function getProjects(status?: string): Promise<Project[]> {
-  const remote = toArray<Project>(await request("projects", { status }));
-  const list = nonEmpty(remote, fallbackProjects);
-  if (remote || !status || status === "all") return list;
-  return list.filter((p) => p.status === status);
+  return getContentProjects(status);
 }
 
 export async function getProject(slug: string): Promise<Project | null> {
-  const remote = await request<Project>(`projects/${encodeURIComponent(slug)}`);
-  if (remote?.slug) return remote;
-  return fallbackProjects.find((p) => p.slug === slug) ?? null;
+  const list = await getContentProjects();
+  return list.find((p) => p.slug === slug) ?? null;
 }
 
 export async function getAllProjectSlugs(): Promise<string[]> {
-  const remote = toArray<Project>(await request("projects"));
-  return (remote?.length ? remote : fallbackProjects).map((p) => p.slug);
+  return (await getContentProjects()).map((p) => p.slug);
 }
 
 /* ───────────────────────────── Events ───────────────────────────── */
 
 export async function getEvents(): Promise<PartyEvent[]> {
-  const list = nonEmpty(toArray<PartyEvent>(await request("events")), fallbackEvents);
+  const list = await getContentEvents();
   const now = Date.now();
   // Derive status when the admin panel doesn't supply it.
   return list.map((e) => ({
@@ -278,13 +321,13 @@ export async function getEvents(): Promise<PartyEvent[]> {
 /* ───────────────────────────── Gallery ───────────────────────────── */
 
 export async function getGallery(): Promise<GalleryItem[]> {
-  return nonEmpty(toArray<GalleryItem>(await request("gallery")), fallbackGallery);
+  return getContentGallery();
 }
 
 /* ───────────────────────────── Testimonials ───────────────────────────── */
 
 export async function getTestimonials(): Promise<Testimonial[]> {
-  return nonEmpty(toArray<Testimonial>(await request("testimonials")), fallbackTestimonials);
+  return fromDb(() => content.publicTestimonials() as Promise<Testimonial[]>, fallbackTestimonials);
 }
 
 
@@ -323,4 +366,24 @@ export async function getContentLeaders(): Promise<Leader[]> {
 
 export async function getContentGallery(): Promise<GalleryItem[]> {
   return fromDb(() => content.publicGallery() as Promise<GalleryItem[]>, fallbackGallery);
+}
+
+/**
+ * Membership figures from this website's own registry, used when the
+ * registration system cannot be reached. Returns null when the registry is
+ * empty, so the site shows nothing rather than zeros.
+ */
+export async function getOwnTotals(): Promise<LiveTotals | null> {
+  try {
+    const { memberStats } = await import("./server/members");
+    const stats = await memberStats();
+    if (!stats.total) return null;
+    return {
+      totalMembers: stats.total,
+      totalRegions: stats.regions,
+      totalDistricts: stats.districts,
+    };
+  } catch {
+    return null;
+  }
 }

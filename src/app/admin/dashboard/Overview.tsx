@@ -8,8 +8,11 @@ import {
   CheckCircle2,
   FolderKanban,
   Image as ImageIcon,
+  HardDrive,
+  Mail,
   MessageSquare,
   Newspaper,
+  Quote,
   Radio,
   Settings,
   Sparkles,
@@ -18,9 +21,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import type { ActivityRow } from "@/lib/server/activity";
 import type { ContentCounts } from "@/lib/server/content";
 import type { LiveTotals } from "@/lib/types";
-import { formatNumber } from "@/lib/utils";
+import { formatDate, formatNumber } from "@/lib/utils";
 
 function Card({
   icon: Icon,
@@ -79,13 +83,20 @@ export function Overview({
   adminName,
   totals,
   counts,
+  activity = [],
+  memberCount = null,
 }: {
   adminName: string;
   totals: LiveTotals | null;
   counts: ContentCounts | null;
+  activity?: ActivityRow[];
+  /** Members in this website's own registry. */
+  memberCount?: number | null;
 }) {
   const firstName = adminName.split(/[\s@]/)[0] || "there";
-  const n = (v: number | undefined) => (typeof v === "number" ? formatNumber(v, "en") : "—");
+  const n = (v: number | null | undefined) =>
+    typeof v === "number" ? formatNumber(v, "en") : "—";
+  const live = Boolean(totals);
 
   return (
     <div className="space-y-10">
@@ -98,9 +109,21 @@ export function Overview({
       >
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live & Realtime
+            <span
+              className={
+                live
+                  ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-emerald-400"
+                  : "inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-amber-400"
+              }
+            >
+              <span
+                className={
+                  live
+                    ? "h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400"
+                    : "h-1.5 w-1.5 rounded-full bg-amber-400"
+                }
+              />
+              {live ? "Registration system connected" : "Registration system offline"}
             </span>
             <span className="text-xs text-ink-500">Xisbiga Hilaac Console</span>
           </div>
@@ -131,7 +154,7 @@ export function Overview({
             </h2>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/20 bg-gold-500/5 px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-wide text-gold-400">
               <Sparkles className="h-3 w-3" />
-              Auto-Synchronized
+              {live ? "From the registration system" : "Awaiting the registration system"}
             </span>
           </div>
           <Link
@@ -146,16 +169,20 @@ export function Overview({
           <Card
             index={0}
             icon={Users}
-            value={n(totals?.totalMembers || 128500)}
+            value={n(totals?.totalMembers)}
             label="Total Members"
-            hint="Digital & verified registrations"
+            hint={
+              memberCount === null
+                ? "Read from the registration system"
+                : `${formatNumber(memberCount, "en")} in your own registry`
+            }
             tone="gold"
             href="/admin/dashboard/members"
           />
           <Card
             index={1}
             icon={Activity}
-            value={n(totals?.totalRegions || 18)}
+            value={n(totals?.totalRegions)}
             label="Active Regions"
             hint="Nationwide presence"
             tone="emerald"
@@ -164,7 +191,7 @@ export function Overview({
           <Card
             index={2}
             icon={CheckCircle2}
-            value={n(totals?.totalDistricts || 94)}
+            value={n(totals?.totalDistricts)}
             label="Covered Districts"
             hint="Local branches established"
             tone="sky"
@@ -223,10 +250,34 @@ export function Overview({
           <Card
             index={5}
             icon={MessageSquare}
-            value={n(counts?.unread_messages || 0)}
-            label="Inquiries & Messages"
-            hint="Contact submissions"
+            value={n(counts?.unread_messages)}
+            label="Unread messages"
+            hint={counts ? `${counts.messages} received in total` : "Contact submissions"}
             href="/admin/dashboard/messages"
+          />
+          <Card
+            index={6}
+            icon={Quote}
+            value={n(counts?.testimonials)}
+            label="Testimonials"
+            hint="Quotes shown on the homepage"
+            href="/admin/dashboard/testimonials"
+          />
+          <Card
+            index={7}
+            icon={HardDrive}
+            value={n(counts?.media)}
+            label="Media library"
+            hint="Uploaded images"
+            href="/admin/dashboard/media"
+          />
+          <Card
+            index={8}
+            icon={Mail}
+            value={n(counts?.subscribers)}
+            label="Newsletter subscribers"
+            hint="Collected from the public site"
+            href="/admin/dashboard/subscribers"
           />
         </div>
       </section>
@@ -236,7 +287,7 @@ export function Overview({
         <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
           Quick Control Hub
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link
             href="/admin/dashboard/members"
             className="group flex flex-col justify-between rounded-3xl border border-gold-500/25 bg-gold-500/[0.07] p-5 transition-all hover:-translate-y-0.5 hover:border-gold-500/50"
@@ -270,6 +321,22 @@ export function Overview({
           </Link>
 
           <Link
+            href="/admin/dashboard/media"
+            className="group flex flex-col justify-between rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition-all hover:-translate-y-0.5 hover:border-gold-500/35"
+          >
+            <div>
+              <HardDrive className="mb-3 h-6 w-6 text-violet-400" />
+              <span className="block font-display font-bold text-white">Media Library</span>
+              <span className="mt-1 block text-xs text-ink-400">
+                Upload photos once, then use them anywhere on the site
+              </span>
+            </div>
+            <div className="mt-4 flex items-center gap-1 text-xs font-bold text-violet-400">
+              Open Library <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+
+          <Link
             href="/admin/dashboard/news"
             className="group flex flex-col justify-between rounded-3xl border border-white/10 bg-white/[0.04] p-5 transition-all hover:-translate-y-0.5 hover:border-gold-500/35"
           >
@@ -284,6 +351,45 @@ export function Overview({
               Manage News <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
+        </div>
+      </section>
+
+      {/* Recent activity */}
+      <section>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
+            Recent activity
+          </h2>
+          <Link
+            href="/admin/dashboard/analytics"
+            className="text-xs font-semibold text-gold-400 transition-colors hover:text-gold-300"
+          >
+            Open analytics →
+          </Link>
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+          {activity.length === 0 ? (
+            <p className="py-6 text-center text-xs text-ink-500">
+              Nothing yet. Every change you make from this dashboard is recorded here.
+            </p>
+          ) : (
+            <ul className="divide-y divide-white/6">
+              {activity.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-xs"
+                >
+                  <span className="w-16 shrink-0 font-bold uppercase tracking-wide text-ink-500">
+                    {row.action}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-ink-200">{row.summary}</span>
+                  <span className="text-ink-500">{row.adminName}</span>
+                  <span className="text-ink-600">{formatDate(row.createdAt, "en")}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
     </div>

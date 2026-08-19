@@ -5,7 +5,7 @@ import type { GalleryRow } from "@/lib/server/collections";
 import { CollectionManager, PublishedTag, type FieldDef } from "../CollectionManager";
 
 const FIELDS: FieldDef[] = [
-  { key: "src", label: "Image or video URL", span: 12, placeholder: "/images/… or https://…" },
+  { key: "src", label: "Image", type: "image", span: 12, folder: "gallery" },
   { key: "type", label: "Type", type: "select", options: ["photo", "video"], span: 4 },
   { key: "album", label: "Album", span: 4, placeholder: "Olole, Bulsho…" },
   { key: "sortOrder", label: "Display order", type: "number", span: 4 },

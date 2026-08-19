@@ -168,6 +168,11 @@ export interface ContentCounts {
   events: number;
   leaders: number;
   gallery: number;
+  testimonials: number;
+  media: number;
+  members: number;
+  subscribers: number;
+  messages: number;
   unread_messages: number;
 }
 
@@ -182,6 +187,11 @@ export async function contentCounts(): Promise<ContentCounts> {
       (SELECT count(*)::int FROM site_events)                      AS events,
       (SELECT count(*)::int FROM site_leaders)                     AS leaders,
       (SELECT count(*)::int FROM site_gallery)                     AS gallery,
+      (SELECT count(*)::int FROM site_testimonials)                AS testimonials,
+      (SELECT count(*)::int FROM site_media)                       AS media,
+      (SELECT count(*)::int FROM site_members)                     AS members,
+      (SELECT count(*)::int FROM site_subscribers)                 AS subscribers,
+      (SELECT count(*)::int FROM site_messages)                    AS messages,
       (SELECT count(*)::int FROM site_messages WHERE NOT is_read)  AS unread_messages
   `);
   return res.rows[0];
@@ -323,6 +333,23 @@ export async function publicGallery(type?: string) {
     src: r.src,
     thumb: r.src,
     album: r.album,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+export async function publicTestimonials() {
+  await ensureSchema();
+  const res = await getPool().query(
+    "SELECT * FROM site_testimonials WHERE published ORDER BY sort_order, id LIMIT 100",
+  );
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return res.rows.map((r: any) => ({
+    id: String(r.id),
+    name: r.name,
+    role: L(r.role_so, r.role_en),
+    quote: L(r.quote_so, r.quote_en),
+    avatar: r.avatar,
+    rating: Number(r.rating) || 5,
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { currentAdmin } from "@/lib/server/auth";
+import { currentAdmin, type SiteAdmin } from "@/lib/server/auth";
+import { logActivity } from "@/lib/server/activity";
 import {
   createProject,
   deleteProject,
@@ -10,14 +11,17 @@ import {
 
 export const dynamic = "force-dynamic";
 
-async function guard() {
+async function guard(): Promise<{ admin: SiteAdmin } | { denied: NextResponse }> {
   const admin = await currentAdmin();
-  return admin ? null : NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  if (!admin) {
+    return { denied: NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 }) };
+  }
+  return { admin };
 }
 
 export async function GET() {
-  const denied = await guard();
-  if (denied) return denied;
+  const session = await guard();
+  if ("denied" in session) return session.denied;
   try {
     return NextResponse.json({ ok: true, items: await listProjects() });
   } catch {
@@ -26,8 +30,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const denied = await guard();
-  if (denied) return denied;
+  const session = await guard();
+  if ("denied" in session) return session.denied;
 
   let body: ProjectInput;
   try {
@@ -44,15 +48,20 @@ export async function POST(request: Request) {
   }
 
   try {
-    return NextResponse.json({ ok: true, item: await createProject(body) }, { status: 201 });
+    const item = await createProject(body);
+    await logActivity(
+      session.admin, "create", "project",
+      `Added project “${item.titleEn || item.titleSo}”`, item.id,
+    );
+    return NextResponse.json({ ok: true, item }, { status: 201 });
   } catch {
     return NextResponse.json({ ok: false, error: "Could not save." }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
-  const denied = await guard();
-  if (denied) return denied;
+  const session = await guard();
+  if ("denied" in session) return session.denied;
 
   let body: ProjectInput & { id?: number };
   try {
@@ -69,6 +78,10 @@ export async function PUT(request: Request) {
   try {
     const item = await updateProject(id, body);
     if (!item) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await logActivity(
+      session.admin, "update", "project",
+      `Updated project “${item.titleEn || item.titleSo}”`, id,
+    );
     return NextResponse.json({ ok: true, item });
   } catch {
     return NextResponse.json({ ok: false, error: "Could not save." }, { status: 500 });
@@ -76,8 +89,8 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const denied = await guard();
-  if (denied) return denied;
+  const session = await guard();
+  if ("denied" in session) return session.denied;
 
   const id = Number(new URL(request.url).searchParams.get("id"));
   if (!Number.isInteger(id) || id < 1) {
@@ -87,6 +100,7 @@ export async function DELETE(request: Request) {
   try {
     const removed = await deleteProject(id);
     if (!removed) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await logActivity(session.admin, "delete", "project", `Deleted project #${id}`, id);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false, error: "Could not delete." }, { status: 500 });

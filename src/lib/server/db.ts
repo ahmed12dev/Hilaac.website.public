@@ -168,10 +168,93 @@ const SCHEMA = `
     created_at TIMESTAMPTZ DEFAULT now()
   );
 
+  /* ── Members registry ─────────────────────────────────────────────
+     This website's OWN member records, entered or imported by a website
+     administrator. It is deliberately separate from the registration
+     system's `registrations` table, which this app never touches. */
+
+  CREATE SEQUENCE IF NOT EXISTS site_member_seq START 101;
+
+  CREATE TABLE IF NOT EXISTS site_members (
+    id                SERIAL PRIMARY KEY,
+    membership_number TEXT UNIQUE NOT NULL,
+    full_name         TEXT NOT NULL,
+    phone             TEXT NOT NULL DEFAULT '',
+    email             TEXT NOT NULL DEFAULT '',
+    region            TEXT NOT NULL DEFAULT '',
+    district          TEXT NOT NULL DEFAULT '',
+    gender            TEXT NOT NULL DEFAULT '',
+    status            TEXT NOT NULL DEFAULT 'pending',
+    note              TEXT NOT NULL DEFAULT '',
+    source            TEXT NOT NULL DEFAULT 'admin',
+    created_at        TIMESTAMPTZ DEFAULT now(),
+    updated_at        TIMESTAMPTZ DEFAULT now()
+  );
+
+  /* ── Media library ────────────────────────────────────────────────
+     Uploaded images live in the database so they survive redeploys —
+     Railway containers have no persistent filesystem. */
+
+  CREATE TABLE IF NOT EXISTS site_media (
+    id         TEXT PRIMARY KEY,
+    filename   TEXT NOT NULL,
+    mime       TEXT NOT NULL,
+    bytes      INTEGER NOT NULL DEFAULT 0,
+    alt        TEXT NOT NULL DEFAULT '',
+    folder     TEXT NOT NULL DEFAULT 'general',
+    data       BYTEA NOT NULL,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  /* ── Activity log ─────────────────────────────────────────────────
+     Every admin mutation is recorded here, so the dashboard can show who
+     changed what and when. */
+
+  CREATE TABLE IF NOT EXISTS site_activity (
+    id         SERIAL PRIMARY KEY,
+    admin_id   TEXT,
+    admin_name TEXT NOT NULL DEFAULT '',
+    action     TEXT NOT NULL,
+    entity     TEXT NOT NULL,
+    entity_id  TEXT,
+    summary    TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  /* ── Testimonials ─────────────────────────────────────────────── */
+
+  CREATE TABLE IF NOT EXISTS site_testimonials (
+    id         SERIAL PRIMARY KEY,
+    name       TEXT NOT NULL,
+    role_so    TEXT NOT NULL DEFAULT '',
+    role_en    TEXT NOT NULL DEFAULT '',
+    quote_so   TEXT NOT NULL DEFAULT '',
+    quote_en   TEXT NOT NULL DEFAULT '',
+    avatar     TEXT,
+    rating     INTEGER NOT NULL DEFAULT 5,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    published  BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+
+  /* ── Newsletter subscribers ───────────────────────────────────── */
+
+  CREATE TABLE IF NOT EXISTS site_subscribers (
+    id           SERIAL PRIMARY KEY,
+    email        TEXT UNIQUE NOT NULL,
+    confirmed    BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMPTZ DEFAULT now()
+  );
+
   CREATE INDEX IF NOT EXISTS idx_site_news_pub ON site_news (published, published_at DESC);
   CREATE INDEX IF NOT EXISTS idx_site_proj_pub ON site_projects (published, status);
   CREATE INDEX IF NOT EXISTS idx_site_evt_pub  ON site_events (published, starts_at DESC);
   CREATE INDEX IF NOT EXISTS idx_site_sess_exp ON site_sessions (expires_at);
+  CREATE INDEX IF NOT EXISTS idx_site_mem_status ON site_members (status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_site_mem_region ON site_members (region);
+  CREATE INDEX IF NOT EXISTS idx_site_act_time   ON site_activity (created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_site_media_time ON site_media (created_at DESC);
 `;
 
 /** Creates the site_* tables once per process. Never touches other tables. */

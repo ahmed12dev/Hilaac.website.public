@@ -15,7 +15,7 @@ const FIELDS: FieldDef[] = [
   { key: "capacity", label: "Capacity", type: "number", span: 4 },
   { key: "locationSo", label: "Location — Somali", span: 6 },
   { key: "locationEn", label: "Location — English", span: 6 },
-  { key: "cover", label: "Cover image URL", span: 12, placeholder: "/images/…" },
+  { key: "cover", label: "Cover image", type: "image", span: 12, folder: "events" },
   { key: "published", label: "Show on the website", type: "checkbox" },
 ];
 

@@ -1,8 +1,12 @@
+# Railway sets NODE_ENV=production, which makes a bare `npm ci` skip
+# devDependencies. TypeScript and Tailwind live there and are both required by
+# `next build`, so --include=dev is not optional — without it the build dies on
+# "Cannot find module 'typescript'" while loading next.config.ts.
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm ci --legacy-peer-deps || npm install --legacy-peer-deps"]
+cmds = ["npm ci --include=dev --legacy-peer-deps || npm install --include=dev --legacy-peer-deps"]
 
 [phases.build]
 cmds = ["npm run build"]

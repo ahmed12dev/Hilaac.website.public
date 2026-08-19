@@ -1,7 +1,8 @@
+import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { ScrollProgress } from "@/components/layout/ScrollProgress";
-import { getSettings } from "@/lib/api";
+import { getAnnouncement, getSettings } from "@/lib/api";
 
 /**
  * Chrome for the public website only.
@@ -10,10 +11,17 @@ import { getSettings } from "@/lib/api";
  * navbar, footer or scroll bar — they get their own layout instead.
  */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettings();
+  const [settings, announcement] = await Promise.all([getSettings(), getAnnouncement()]);
 
   return (
     <>
+      {announcement && (
+        <AnnouncementBar
+          textSo={announcement.textSo}
+          textEn={announcement.textEn}
+          link={announcement.link || undefined}
+        />
+      )}
       <ScrollProgress />
       <Navbar />
       <main id="main">{children}</main>

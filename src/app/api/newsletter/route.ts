@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { API_BASE } from "@/lib/api";
+import { addSubscriber } from "@/lib/server/collections";
 
 /**
- * Forwards newsletter sign-ups to the admin dashboard
- * (POST <API_BASE>/api/public/newsletter). Accepts the address locally when
- * the backend endpoint isn't available yet so the UI never dead-ends.
+ * Newsletter sign-ups.
+ *
+ * The address is stored in this website's own `site_subscribers` table so it
+ * shows up on the dashboard's Subscribers screen, and is also forwarded to the
+ * registration backend when one is configured.
  */
 export async function POST(request: Request) {
   let email = "";
@@ -19,7 +22,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_email" }, { status: 400 });
   }
 
-  if (!API_BASE) return NextResponse.json({ ok: true, forwarded: false });
+  // Stored locally first, so a sign-up is never lost when the upstream
+  // backend is unreachable.
+  let stored = false;
+  try {
+    stored = await addSubscriber(email);
+  } catch {
+    stored = false;
+  }
+
+  if (!API_BASE) return NextResponse.json({ ok: true, stored, forwarded: false });
 
   try {
     const res = await fetch(`${API_BASE}/api/public/newsletter`, {
@@ -27,8 +39,8 @@ export async function POST(request: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
-    return NextResponse.json({ ok: true, forwarded: res.ok });
+    return NextResponse.json({ ok: true, stored, forwarded: res.ok });
   } catch {
-    return NextResponse.json({ ok: true, forwarded: false });
+    return NextResponse.json({ ok: true, stored, forwarded: false });
   }
 }

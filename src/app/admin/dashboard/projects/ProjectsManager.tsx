@@ -16,6 +16,7 @@ import {
 import { useState, type FormEvent } from "react";
 import type { ProjectRow } from "@/lib/server/content";
 import { cn, formatDate, formatMoney } from "@/lib/utils";
+import { MediaPicker } from "../MediaPicker";
 
 const FIELD =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white outline-none " +
@@ -346,11 +347,13 @@ export function ProjectsManager({ initialItems }: { initialItems: ProjectRow[] }
                   </div>
                 </div>
 
-                <div>
-                  <label className={LABEL} htmlFor="p-cover">Cover image URL</label>
-                  <input id="p-cover" className={FIELD} value={draft.cover ?? ""}
-                         onChange={(e) => setDraft({ ...draft, cover: e.target.value })} />
-                </div>
+                <MediaPicker
+                  id="p-cover"
+                  label="Cover image"
+                  folder="projects"
+                  value={draft.cover ?? ""}
+                  onChange={(url) => setDraft({ ...draft, cover: url })}
+                />
 
                 <label className="inline-flex cursor-pointer items-center gap-2.5 text-sm">
                   <input type="checkbox" className="h-4 w-4 accent-gold-500"

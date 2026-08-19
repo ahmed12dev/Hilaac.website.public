@@ -40,6 +40,10 @@ export function Leadership({
   const { tr, tx } = useLanguage();
   const list = limit ? leaders.slice(0, limit) : leaders;
 
+  // On the homepage an empty section is worse than no section at all; the
+  // dedicated page says so in words instead.
+  if (!list.length && !hideHeading) return null;
+
   return (
     <Section id="leadership">
       <div className="container-page">
@@ -49,6 +53,10 @@ export function Leadership({
             title={tr("leadership.title")}
             subtitle={tr("leadership.subtitle")}
           />
+        )}
+
+        {list.length === 0 && (
+          <p className="py-14 text-center text-ink-500">{tr("leadership.empty")}</p>
         )}
 
         <StaggerGroup className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">

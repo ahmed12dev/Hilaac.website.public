@@ -65,6 +65,9 @@ export const dictionary = {
     "events.past": "Kuwa Hore",
     "events.register": "Isdiiwaangeli",
     "events.empty": "Munaasabado lama helin.",
+    "gallery.empty": "Sawirro lama helin.",
+    "leadership.empty": "Hoggaamiyayaal lama helin.",
+    "testimonials.empty": "Marag-furid lama helin.",
     "events.seats": "kursi ayaa la qaatay",
 
     "gallery.title": "Bandhigga Sawirada",
@@ -226,6 +229,9 @@ export const dictionary = {
     "events.past": "Previous",
     "events.register": "Register",
     "events.empty": "No events found.",
+    "gallery.empty": "No photos yet.",
+    "leadership.empty": "No leadership profiles yet.",
+    "testimonials.empty": "No testimonials yet.",
     "events.seats": "seats taken",
 
     "gallery.title": "Media Gallery",

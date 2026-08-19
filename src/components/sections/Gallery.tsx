@@ -31,6 +31,9 @@ export function Gallery({
     return limit ? filtered.slice(0, limit) : filtered;
   }, [items, filter, limit]);
 
+  // Hide the homepage section entirely when there is nothing to show.
+  if (!items.length && !hideHeading) return null;
+
   const tabs: { value: Filter; label: string }[] = [
     { value: "all", label: tr("gallery.all") },
     { value: "photo", label: tr("gallery.photos") },

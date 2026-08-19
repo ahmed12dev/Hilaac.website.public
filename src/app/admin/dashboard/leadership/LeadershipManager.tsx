@@ -11,7 +11,7 @@ const FIELDS: FieldDef[] = [
   { key: "positionEn", label: "Position — English", span: 6 },
   { key: "bioSo", label: "Biography — Somali", type: "textarea", rows: 5, span: 6 },
   { key: "bioEn", label: "Biography — English", type: "textarea", rows: 5, span: 6 },
-  { key: "photo", label: "Photo URL", span: 12, placeholder: "/images/…" },
+  { key: "photo", label: "Photo", type: "image", span: 12, folder: "leadership" },
   { key: "published", label: "Show on the website", type: "checkbox" },
 ];
 

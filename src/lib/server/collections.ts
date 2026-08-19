@@ -381,9 +381,145 @@ export async function addMessage(m: {
   return res.rows[0].id;
 }
 
+/* ═══════════════════════ testimonials ═══════════════════════ */
+
+export interface TestimonialRow {
+  id: number;
+  name: string;
+  roleSo: string;
+  roleEn: string;
+  quoteSo: string;
+  quoteEn: string;
+  avatar: string | null;
+  rating: number;
+  sortOrder: number;
+  published: boolean;
+}
+
+export interface TestimonialInput {
+  name?: string;
+  roleSo?: string;
+  roleEn?: string;
+  quoteSo?: string;
+  quoteEn?: string;
+  avatar?: string | null;
+  rating?: number;
+  sortOrder?: number;
+  published?: boolean;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapTestimonial(r: any): TestimonialRow {
+  return {
+    id: r.id,
+    name: r.name,
+    roleSo: r.role_so,
+    roleEn: r.role_en,
+    quoteSo: r.quote_so,
+    quoteEn: r.quote_en,
+    avatar: r.avatar,
+    rating: Number(r.rating) || 5,
+    sortOrder: r.sort_order,
+    published: r.published,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+function testimonialValues(i: TestimonialInput) {
+  const rating = Math.round(Number(i.rating));
+  return {
+    name: clean(i.name, 160),
+    roleSo: clean(i.roleSo, 160),
+    roleEn: clean(i.roleEn, 160),
+    quoteSo: clean(i.quoteSo, 1200),
+    quoteEn: clean(i.quoteEn, 1200),
+    avatar: clean(i.avatar, 500) || null,
+    rating: Number.isFinite(rating) ? Math.max(1, Math.min(5, rating)) : 5,
+    sortOrder: Math.max(0, Math.round(Number(i.sortOrder) || 0)),
+    published: i.published !== false,
+  };
+}
+
+export async function listTestimonialsAdmin(): Promise<TestimonialRow[]> {
+  await ensureSchema();
+  const res = await getPool().query(
+    "SELECT * FROM site_testimonials ORDER BY sort_order, id LIMIT 200",
+  );
+  return res.rows.map(mapTestimonial);
+}
+
+export async function createTestimonial(input: TestimonialInput): Promise<TestimonialRow> {
+  await ensureSchema();
+  const v = testimonialValues(input);
+  const res = await getPool().query(
+    `INSERT INTO site_testimonials
+       (name, role_so, role_en, quote_so, quote_en, avatar, rating, sort_order, published)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    [v.name, v.roleSo, v.roleEn, v.quoteSo, v.quoteEn, v.avatar, v.rating, v.sortOrder, v.published],
+  );
+  return mapTestimonial(res.rows[0]);
+}
+
+export async function updateTestimonial(
+  id: number,
+  input: TestimonialInput,
+): Promise<TestimonialRow | null> {
+  await ensureSchema();
+  const v = testimonialValues(input);
+  const res = await getPool().query(
+    `UPDATE site_testimonials SET
+       name=$2, role_so=$3, role_en=$4, quote_so=$5, quote_en=$6,
+       avatar=$7, rating=$8, sort_order=$9, published=$10
+     WHERE id=$1 RETURNING *`,
+    [id, v.name, v.roleSo, v.roleEn, v.quoteSo, v.quoteEn, v.avatar, v.rating, v.sortOrder, v.published],
+  );
+  return res.rows[0] ? mapTestimonial(res.rows[0]) : null;
+}
+
+/* ═══════════════════════ newsletter subscribers ═══════════════════════ */
+
+export interface SubscriberRow {
+  id: number;
+  email: string;
+  confirmed: boolean;
+  createdAt: string;
+}
+
+export async function listSubscribers(): Promise<SubscriberRow[]> {
+  await ensureSchema();
+  const res = await getPool().query(
+    "SELECT * FROM site_subscribers ORDER BY created_at DESC LIMIT 2000",
+  );
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return res.rows.map((r: any) => ({
+    id: r.id,
+    email: r.email,
+    confirmed: r.confirmed,
+    createdAt: r.created_at,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/** Stores a newsletter sign-up. Re-subscribing is not an error. */
+export async function addSubscriber(email: string): Promise<boolean> {
+  await ensureSchema();
+  const res = await getPool().query(
+    `INSERT INTO site_subscribers (email) VALUES ($1)
+     ON CONFLICT (email) DO NOTHING RETURNING id`,
+    [clean(email, 254).toLowerCase()],
+  );
+  return (res.rowCount ?? 0) > 0;
+}
+
 /* ═══════════════════════ shared delete ═══════════════════════ */
 
-export type DeletableTable = "site_events" | "site_leaders" | "site_gallery" | "site_messages";
+export type DeletableTable =
+  | "site_events"
+  | "site_leaders"
+  | "site_gallery"
+  | "site_messages"
+  | "site_testimonials"
+  | "site_subscribers";
 
 /** Table name is a closed union, so it can never come from user input. */
 export async function deleteRow(table: DeletableTable, id: number): Promise<boolean> {

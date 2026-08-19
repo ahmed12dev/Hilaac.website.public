@@ -2,10 +2,15 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertCircle,
   CheckCircle2,
   Clock,
   Download,
+  FileUp,
   Filter,
+  Loader2,
+  MapPin,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -15,12 +20,11 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type { MemberRecord } from "@/app/api/site-admin/members/route";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { MemberRow, MemberStats } from "@/lib/server/members";
 import { cn, formatDate } from "@/lib/utils";
 
 const REGIONS = [
-  "All",
   "Banaadir",
   "Galmudug",
   "Puntland",
@@ -31,139 +35,212 @@ const REGIONS = [
   "Diaspora",
 ];
 
+const STATUSES = ["pending", "active", "verified"] as const;
+
+const FIELD =
+  "h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-white outline-none " +
+  "placeholder:text-ink-500 focus:border-gold-500/70";
+const LABEL = "mb-1 block text-xs font-semibold text-ink-300";
+
+type Draft = Partial<MemberRow>;
+
+const EMPTY: Draft = {
+  fullName: "",
+  phone: "",
+  email: "",
+  region: "Banaadir",
+  district: "",
+  gender: "Male",
+  status: "pending",
+  note: "",
+};
+
 export function MembersManager() {
-  const [members, setMembers] = useState<MemberRecord[]>([]);
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [stats, setStats] = useState<MemberStats | null>(null);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState("All");
-  const [selectedStatus, setSelectedStatus] = useState("All");
-  const [showAddModal, setShowAddModal] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
-  // Form state
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [region, setRegion] = useState("Banaadir");
-  const [district, setDistrict] = useState("");
-  const [gender, setGender] = useState("Male");
+  const [search, setSearch] = useState("");
+  const [region, setRegion] = useState("All");
+  const [status, setStatus] = useState("All");
 
-  async function loadMembers() {
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function flash(kind: "ok" | "err", text: string) {
+    setNotice({ kind, text });
+    window.setTimeout(() => setNotice(null), 4500);
+  }
+
+  /** Filtering runs in SQL, so the roster stays fast however long it gets. */
+  const filterQuery = useCallback(() => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set("q", search.trim());
+    if (region !== "All") params.set("region", region);
+    if (status !== "All") params.set("status", status);
+    return params;
+  }, [search, region, status]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/site-admin/members");
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.members)) {
-        setMembers(data.members);
+      const res = await fetch(`/api/site-admin/members?${filterQuery().toString()}`);
+      const data = (await res.json()) as {
+        ok?: boolean;
+        members?: MemberRow[];
+        total?: number;
+        stats?: MemberStats;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        flash("err", data.error ?? "Could not load the registry.");
+        return;
       }
+      setMembers(data.members ?? []);
+      setTotal(data.total ?? 0);
+      if (data.stats) setStats(data.stats);
     } catch {
-      // ignore
+      flash("err", "Network error.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [filterQuery]);
 
+  // Search is debounced so typing doesn't fire a request per keystroke.
   useEffect(() => {
-    loadMembers();
-  }, []);
+    const timer = window.setTimeout(load, search ? 300 : 0);
+    return () => window.clearTimeout(timer);
+  }, [load, search]);
 
-  const filteredMembers = useMemo(() => {
-    return members.filter((m) => {
-      const q = search.toLowerCase().trim();
-      if (q) {
-        const match =
-          m.fullName.toLowerCase().includes(q) ||
-          m.membershipNumber.toLowerCase().includes(q) ||
-          m.phone.includes(q) ||
-          m.email.toLowerCase().includes(q) ||
-          m.district.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      if (selectedRegion !== "All" && m.region !== selectedRegion) return false;
-      if (selectedStatus !== "All" && m.status !== selectedStatus) return false;
-      return true;
-    });
-  }, [members, search, selectedRegion, selectedStatus]);
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!draft || !String(draft.fullName || "").trim()) return;
 
-  async function updateStatus(id: string, newStatus: "verified" | "active" | "pending") {
-    setMembers((list) =>
-      list.map((m) => (m.id === id ? { ...m, status: newStatus } : m)),
-    );
-    await fetch("/api/site-admin/members", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: newStatus }),
-    }).catch(() => undefined);
-  }
-
-  async function deleteMember(id: string) {
-    if (!confirm("Are you sure you want to delete this member registration?")) return;
-    setMembers((list) => list.filter((m) => m.id !== id));
-    await fetch("/api/site-admin/members", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    }).catch(() => undefined);
-  }
-
-  async function handleAddMember(e: React.FormEvent) {
-    e.preventDefault();
-    if (!fullName || !phone) return;
     setBusy(true);
+    const editing = typeof draft.id === "number";
     try {
       const res = await fetch("/api/site-admin/members", {
-        method: "POST",
+        method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, phone, email, region, district, gender }),
+        body: JSON.stringify(draft),
       });
-      const data = await res.json();
-      if (data.ok && data.member) {
-        setMembers((prev) => [data.member, ...prev]);
-        setShowAddModal(false);
-        setFullName("");
-        setPhone("");
-        setEmail("");
-        setDistrict("");
+      const data = (await res.json()) as { ok?: boolean; member?: MemberRow; error?: string };
+      if (!res.ok || !data.ok || !data.member) {
+        flash("err", data.error ?? "Could not save.");
+        return;
       }
+      setDraft(null);
+      flash("ok", editing ? "Member updated." : "Member registered.");
+      load();
+    } catch {
+      flash("err", "Network error.");
     } finally {
       setBusy(false);
     }
   }
 
-  function exportCSV() {
-    const headers = ["Membership ID,Full Name,Phone,Email,Region,District,Gender,Status,Joined Date"];
-    const rows = filteredMembers.map(
-      (m) =>
-        `"${m.membershipNumber}","${m.fullName}","${m.phone}","${m.email}","${m.region}","${m.district}","${m.gender}","${m.status}","${m.joinedAt}"`,
+  async function setStatusOf(id: number, next: string) {
+    setMembers((list) =>
+      list.map((m) => (m.id === id ? { ...m, status: next as MemberRow["status"] } : m)),
     );
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `xisbiga-hilaac-members-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      await fetch("/api/site-admin/members", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: next }),
+      });
+      load();
+    } catch {
+      flash("err", "Could not update the status.");
+    }
   }
 
-  const verifiedCount = members.filter((m) => m.status === "verified").length;
-  const activeCount = members.filter((m) => m.status === "active").length;
-  const pendingCount = members.filter((m) => m.status === "pending").length;
+  async function remove(id: number) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/site-admin/members?id=${id}`, { method: "DELETE" });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        flash("err", data.error ?? "Could not delete.");
+        return;
+      }
+      flash("ok", "Member removed.");
+      load();
+    } catch {
+      flash("err", "Network error.");
+    } finally {
+      setConfirmId(null);
+      setBusy(false);
+    }
+  }
+
+  /** The export is generated by the server, so it covers every filtered row. */
+  function exportCsv() {
+    const params = filterQuery();
+    params.set("format", "csv");
+    window.location.href = `/api/site-admin/members?${params.toString()}`;
+  }
+
+  async function importCsv(file: File) {
+    setImporting(true);
+    try {
+      const csv = await file.text();
+      const res = await fetch("/api/site-admin/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        added?: number;
+        failed?: number;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        flash("err", data.error ?? "The import failed.");
+        return;
+      }
+      flash(
+        "ok",
+        `Imported ${data.added} member${data.added === 1 ? "" : "s"}` +
+          (data.failed ? ` · ${data.failed} row${data.failed === 1 ? "" : "s"} skipped` : ""),
+      );
+      load();
+    } catch {
+      flash("err", "That file could not be read.");
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  const kpis = [
+    { label: "Total registered", value: stats?.total ?? 0, icon: Users, tone: "gold" },
+    { label: "Verified", value: stats?.verified ?? 0, icon: ShieldCheck, tone: "emerald" },
+    { label: "Active", value: stats?.active ?? 0, icon: UserCheck, tone: "sky" },
+    { label: "Pending review", value: stats?.pending ?? 0, icon: Clock, tone: "amber" },
+  ] as const;
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Members Registry</h1>
           <p className="mt-1 text-sm text-ink-400">
-            Real-time party membership database, verification, and roster exports.
+            {stats
+              ? `${stats.total} member${stats.total === 1 ? "" : "s"} · ${stats.regions} region${stats.regions === 1 ? "" : "s"} · ${stats.thisMonth} joined this month`
+              : "Party membership records, verification and roster exports."}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => loadMembers()}
+            type="button"
+            onClick={load}
             disabled={loading}
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-ink-300 transition-colors hover:bg-white/10 hover:text-white"
           >
@@ -171,8 +248,34 @@ export function MembersManager() {
             Refresh
           </button>
 
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) importCsv(file);
+              e.target.value = "";
+            }}
+          />
           <button
-            onClick={exportCSV}
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs font-semibold text-ink-200 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-60"
+          >
+            {importing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-gold-400" />
+            ) : (
+              <FileUp className="h-3.5 w-3.5 text-gold-400" />
+            )}
+            Import CSV
+          </button>
+
+          <button
+            type="button"
+            onClick={exportCsv}
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs font-semibold text-ink-200 transition-colors hover:bg-white/10 hover:text-white"
           >
             <Download className="h-3.5 w-3.5 text-gold-400" />
@@ -180,102 +283,141 @@ export function MembersManager() {
           </button>
 
           <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold-gradient px-4 text-xs font-bold text-ink-950 shadow-gold transition-all hover:scale-[1.02] active:scale-[0.98]"
+            type="button"
+            onClick={() => setDraft({ ...EMPTY })}
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold-gradient px-4 text-xs font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5"
           >
             <Plus className="h-4 w-4" />
-            Add Member
+            Add member
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* KPI Stats */}
+      <AnimatePresence>
+        {notice && (
+          <motion.p
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            role="status"
+            className={cn(
+              "flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold",
+              notice.kind === "ok"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : "border-red-500/30 bg-red-500/10 text-red-300",
+            )}
+          >
+            {notice.kind === "ok" ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            {notice.text}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      {/* Totals */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="flex items-center justify-between text-ink-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Registered</span>
-            <Users className="h-4 w-4 text-gold-400" />
+        {kpis.map((kpi) => (
+          <div
+            key={kpi.label}
+            className={cn(
+              "rounded-2xl border p-4",
+              kpi.tone === "gold" && "border-white/10 bg-white/[0.03]",
+              kpi.tone === "emerald" && "border-emerald-500/20 bg-emerald-500/[0.03]",
+              kpi.tone === "sky" && "border-sky-500/20 bg-sky-500/[0.03]",
+              kpi.tone === "amber" && "border-amber-500/20 bg-amber-500/[0.03]",
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center justify-between",
+                kpi.tone === "gold" && "text-ink-400",
+                kpi.tone === "emerald" && "text-emerald-400",
+                kpi.tone === "sky" && "text-sky-400",
+                kpi.tone === "amber" && "text-amber-400",
+              )}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider">{kpi.label}</span>
+              <kpi.icon className="h-4 w-4" />
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold">{kpi.value}</p>
           </div>
-          <p className="mt-2 font-display text-2xl font-bold">{members.length}</p>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
-          <div className="flex items-center justify-between text-emerald-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Verified Members</span>
-            <ShieldCheck className="h-4 w-4" />
-          </div>
-          <p className="mt-2 font-display text-2xl font-bold text-emerald-300">{verifiedCount}</p>
-        </div>
-
-        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/[0.03] p-4">
-          <div className="flex items-center justify-between text-sky-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active</span>
-            <UserCheck className="h-4 w-4" />
-          </div>
-          <p className="mt-2 font-display text-2xl font-bold text-sky-300">{activeCount}</p>
-        </div>
-
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-4">
-          <div className="flex items-center justify-between text-amber-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Pending Review</span>
-            <Clock className="h-4 w-4" />
-          </div>
-          <p className="mt-2 font-display text-2xl font-bold text-amber-300">{pendingCount}</p>
-        </div>
+        ))}
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:flex-row md:items-center md:justify-between">
+      {/* Filters */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 md:flex-row md:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
+          <label htmlFor="member-search" className="sr-only">
+            Search members
+          </label>
           <input
-            type="text"
-            placeholder="Search by name, ID number, phone, email, district..."
+            id="member-search"
+            type="search"
+            placeholder="Search by name, membership number, phone, email or district…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-4 text-xs text-white placeholder-ink-500 focus:border-gold-500/60 focus:outline-none"
+            className={cn(FIELD, "pl-10")}
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs">
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1">
             <Filter className="h-3.5 w-3.5 text-ink-400" />
+            <label htmlFor="member-region" className="sr-only">
+              Region
+            </label>
             <select
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-              className="bg-transparent text-xs text-white outline-none"
+              id="member-region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="bg-transparent py-1.5 text-xs text-white outline-none"
             >
+              <option value="All" className="bg-ink-900">
+                All regions
+              </option>
               {REGIONS.map((r) => (
-                <option key={r} value={r} className="bg-ink-900 text-white">
-                  {r === "All" ? "All Regions" : r}
+                <option key={r} value={r} className="bg-ink-900">
+                  {r}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1">
+            <label htmlFor="member-status" className="sr-only">
+              Status
+            </label>
             <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent text-xs text-white outline-none"
+              id="member-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="bg-transparent py-1.5 text-xs text-white outline-none"
             >
-              <option value="All" className="bg-ink-900 text-white">All Statuses</option>
-              <option value="verified" className="bg-ink-900 text-white">Verified</option>
-              <option value="active" className="bg-ink-900 text-white">Active</option>
-              <option value="pending" className="bg-ink-900 text-white">Pending</option>
+              <option value="All" className="bg-ink-900">
+                All statuses
+              </option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s} className="bg-ink-900">
+                  {s}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Roster */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/10 bg-white/[0.03] text-ink-400 font-semibold uppercase tracking-wider">
+              <tr className="border-b border-white/10 bg-white/[0.03] font-semibold uppercase tracking-wider text-ink-400">
                 <th className="px-5 py-3.5">Member ID</th>
-                <th className="px-5 py-3.5">Full Name</th>
+                <th className="px-5 py-3.5">Full name</th>
                 <th className="px-5 py-3.5">Contact</th>
                 <th className="px-5 py-3.5">Location</th>
                 <th className="px-5 py-3.5">Status</th>
@@ -287,35 +429,44 @@ export function MembersManager() {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-ink-500">
-                    <RefreshCw className="mx-auto h-6 w-6 animate-spin text-gold-400" />
-                    <p className="mt-2 font-medium">Loading member records...</p>
+                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-gold-400" />
+                    <p className="mt-2 font-medium">Loading the registry…</p>
                   </td>
                 </tr>
-              ) : filteredMembers.length === 0 ? (
+              ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-ink-500">
+                  <td colSpan={7} className="py-14 text-center text-ink-500">
                     <Users className="mx-auto h-8 w-8 text-ink-600" />
-                    <p className="mt-2 font-semibold">No members match the current filter.</p>
+                    <p className="mt-2 font-semibold">
+                      {stats?.total ? "No members match these filters." : "No members yet."}
+                    </p>
+                    {!stats?.total && (
+                      <p className="mt-1 text-xs">
+                        Add one by hand, or import a CSV exported from your registration system.
+                      </p>
+                    )}
                   </td>
                 </tr>
               ) : (
-                filteredMembers.map((m) => (
+                members.map((m) => (
                   <tr key={m.id} className="transition-colors hover:bg-white/[0.02]">
                     <td className="px-5 py-4 font-mono font-bold text-gold-300">
                       {m.membershipNumber}
                     </td>
                     <td className="px-5 py-4 font-semibold text-white">
                       {m.fullName}
-                      <span className="block text-[0.7rem] text-ink-400 font-normal">
-                        {m.gender}
-                      </span>
+                      {m.gender && (
+                        <span className="block text-[0.7rem] font-normal text-ink-400">
+                          {m.gender}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
-                      <div>{m.phone}</div>
+                      <div>{m.phone || "—"}</div>
                       {m.email && <div className="text-[0.7rem] text-ink-400">{m.email}</div>}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="font-medium text-white">{m.region}</span>
+                      <span className="font-medium text-white">{m.region || "—"}</span>
                       {m.district && (
                         <span className="block text-[0.7rem] text-ink-400">{m.district}</span>
                       )}
@@ -323,33 +474,46 @@ export function MembersManager() {
                     <td className="px-5 py-4">
                       <span
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider",
-                          m.status === "verified" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-                          m.status === "active" && "bg-sky-500/10 text-sky-400 border border-sky-500/20",
-                          m.status === "pending" && "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider",
+                          m.status === "verified" &&
+                            "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+                          m.status === "active" && "border-sky-500/20 bg-sky-500/10 text-sky-400",
+                          m.status === "pending" &&
+                            "border-amber-500/20 bg-amber-500/10 text-amber-400",
                         )}
                       >
                         {m.status}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-ink-400">
-                      {formatDate(m.joinedAt, "en")}
-                    </td>
+                    <td className="px-5 py-4 text-ink-400">{formatDate(m.createdAt, "en")}</td>
                     <td className="px-5 py-4 text-right">
                       <div className="inline-flex items-center gap-1">
                         {m.status !== "verified" && (
                           <button
-                            onClick={() => updateStatus(m.id, "verified")}
-                            title="Verify Member"
-                            className="rounded-lg p-1.5 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                            type="button"
+                            onClick={() => setStatusOf(m.id, "verified")}
+                            title="Verify member"
+                            aria-label={`Verify ${m.fullName}`}
+                            className="rounded-lg p-1.5 text-emerald-400 transition-colors hover:bg-emerald-500/10"
                           >
                             <CheckCircle2 className="h-4 w-4" />
                           </button>
                         )}
                         <button
-                          onClick={() => deleteMember(m.id)}
-                          title="Delete Member"
-                          className="rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 transition-colors"
+                          type="button"
+                          onClick={() => setDraft({ ...m })}
+                          title="Edit member"
+                          aria-label={`Edit ${m.fullName}`}
+                          className="rounded-lg p-1.5 text-ink-300 transition-colors hover:bg-white/8 hover:text-gold-300"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmId(m.id)}
+                          title="Delete member"
+                          aria-label={`Delete ${m.fullName}`}
+                          className="rounded-lg p-1.5 text-rose-400 transition-colors hover:bg-rose-500/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -363,135 +527,254 @@ export function MembersManager() {
         </div>
       </div>
 
-      {/* Add Member Modal */}
+      {members.length > 0 && (
+        <p className="text-xs text-ink-500">
+          Showing {members.length} of {total} matching record{total === 1 ? "" : "s"}.
+        </p>
+      )}
+
+      {/* Delete confirmation */}
       <AnimatePresence>
-        {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        {confirmId !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setConfirmId(null)}
+            className="fixed inset-0 z-50 grid place-items-center bg-ink-950/80 p-5 backdrop-blur-sm"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md rounded-3xl border border-white/12 bg-ink-900 p-6 shadow-2xl"
+              initial={{ scale: 0.96, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-sm rounded-3xl border border-red-500/25 bg-ink-900 p-6 text-center"
             >
-              <div className="flex items-center justify-between pb-4 border-b border-white/8">
-                <h3 className="font-display text-lg font-bold text-white">Register New Member</h3>
+              <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-red-500/12 text-red-400">
+                <Trash2 className="h-5 w-5" />
+              </span>
+              <h2 className="font-display text-lg font-bold">Remove this member?</h2>
+              <p className="mt-2 text-sm text-ink-400">
+                Their registration record will be deleted. This cannot be undone.
+              </p>
+              <div className="mt-6 flex gap-3">
                 <button
-                  onClick={() => setShowAddModal(false)}
-                  className="rounded-full p-1 text-ink-400 hover:text-white"
+                  type="button"
+                  onClick={() => setConfirmId(null)}
+                  className="flex-1 rounded-xl border border-white/12 px-4 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
                 >
-                  <X className="h-5 w-5" />
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(confirmId)}
+                  disabled={busy}
+                  className="flex-1 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500 disabled:opacity-60"
+                >
+                  {busy ? "Removing…" : "Remove"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Editor */}
+      <AnimatePresence>
+        {draft && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !busy && setDraft(null)}
+            className="fixed inset-0 z-50 overflow-y-auto bg-ink-950/85 p-4 backdrop-blur-sm sm:p-8"
+          >
+            <motion.form
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={save}
+              className="mx-auto w-full max-w-2xl rounded-4xl border border-white/10 bg-ink-900 p-6 sm:p-8"
+            >
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <h2 className="font-display text-xl font-extrabold">
+                  {typeof draft.id === "number" ? "Edit member" : "Register a new member"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setDraft(null)}
+                  aria-label="Close"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition hover:bg-white/8 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleAddMember} className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1">
-                    Full Name (Magaca oo Dhammaystiran) *
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className={LABEL} htmlFor="m-name">
+                    Full name (Magaca oo dhammaystiran) *
                   </label>
                   <input
-                    type="text"
+                    id="m-name"
                     required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    className={FIELD}
+                    value={draft.fullName ?? ""}
+                    onChange={(e) => setDraft({ ...draft, fullName: e.target.value })}
                     placeholder="e.g. Axmed Cali Maxamed"
-                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-white outline-none focus:border-gold-500/70"
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-ink-300 mb-1">
-                      Phone (Telefoon) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+252 61..."
-                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-white outline-none focus:border-gold-500/70"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-ink-300 mb-1">
-                      Gender (Jinsiga)
-                    </label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-white/10 bg-ink-800 px-3 text-xs text-white outline-none"
-                    >
-                      <option value="Male">Male / Lab</option>
-                      <option value="Female">Female / Dheddig</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1">
-                    Email Address
+                  <label className={LABEL} htmlFor="m-phone">
+                    Phone (Telefoon)
                   </label>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-white outline-none focus:border-gold-500/70"
+                    id="m-phone"
+                    className={FIELD}
+                    value={draft.phone ?? ""}
+                    onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                    placeholder="+252 …"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-ink-300 mb-1">
-                      Region (Gobolka)
-                    </label>
-                    <select
-                      value={region}
-                      onChange={(e) => setRegion(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-white/10 bg-ink-800 px-3 text-xs text-white outline-none"
-                    >
-                      {REGIONS.filter((r) => r !== "All").map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-ink-300 mb-1">
-                      District (Degmada)
-                    </label>
-                    <input
-                      type="text"
-                      value={district}
-                      onChange={(e) => setDistrict(e.target.value)}
-                      placeholder="e.g. Hodan"
-                      className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-white outline-none focus:border-gold-500/70"
-                    />
-                  </div>
+                <div>
+                  <label className={LABEL} htmlFor="m-email">
+                    Email
+                  </label>
+                  <input
+                    id="m-email"
+                    type="email"
+                    className={FIELD}
+                    value={draft.email ?? ""}
+                    onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+                  />
                 </div>
 
-                <div className="mt-6 flex justify-end gap-3 pt-3 border-t border-white/8">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="h-9 rounded-xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-ink-300 hover:bg-white/10"
+                <div>
+                  <label className={LABEL} htmlFor="m-region">
+                    Region (Gobolka)
+                  </label>
+                  <select
+                    id="m-region"
+                    className={cn(FIELD, "bg-ink-800")}
+                    value={draft.region ?? ""}
+                    onChange={(e) => setDraft({ ...draft, region: e.target.value })}
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    className="h-9 rounded-xl bg-gold-gradient px-4 text-xs font-bold text-ink-950 shadow-gold"
-                  >
-                    {busy ? "Saving..." : "Save Member"}
-                  </button>
+                    <option value="">—</option>
+                    {REGIONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </form>
-            </motion.div>
-          </div>
+
+                <div>
+                  <label className={LABEL} htmlFor="m-district">
+                    District (Degmada)
+                  </label>
+                  <input
+                    id="m-district"
+                    className={FIELD}
+                    value={draft.district ?? ""}
+                    onChange={(e) => setDraft({ ...draft, district: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className={LABEL} htmlFor="m-gender">
+                    Gender (Jinsiga)
+                  </label>
+                  <select
+                    id="m-gender"
+                    className={cn(FIELD, "bg-ink-800")}
+                    value={draft.gender ?? ""}
+                    onChange={(e) => setDraft({ ...draft, gender: e.target.value })}
+                  >
+                    <option value="">—</option>
+                    <option value="Male">Male / Lab</option>
+                    <option value="Female">Female / Dheddig</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={LABEL} htmlFor="m-status">
+                    Status
+                  </label>
+                  <select
+                    id="m-status"
+                    className={cn(FIELD, "bg-ink-800")}
+                    value={draft.status ?? "pending"}
+                    onChange={(e) =>
+                      setDraft({ ...draft, status: e.target.value as MemberRow["status"] })
+                    }
+                  >
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={LABEL} htmlFor="m-number">
+                    Membership number
+                  </label>
+                  <input
+                    id="m-number"
+                    className={FIELD}
+                    value={draft.membershipNumber ?? ""}
+                    onChange={(e) => setDraft({ ...draft, membershipNumber: e.target.value })}
+                    placeholder="Leave blank to generate one automatically"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={LABEL} htmlFor="m-note">
+                    Internal note
+                  </label>
+                  <textarea
+                    id="m-note"
+                    rows={3}
+                    className={cn(FIELD, "h-auto py-2.5")}
+                    value={draft.note ?? ""}
+                    onChange={(e) => setDraft({ ...draft, note: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-6 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                >
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {busy ? "Saving…" : "Save member"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft(null)}
+                  className="rounded-xl border border-white/12 px-5 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
         )}
       </AnimatePresence>
+
+      <p className="flex items-start gap-2 text-xs text-ink-500">
+        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        CSV import matches columns by header name — Full Name, Phone, Email, Region, District,
+        Gender and Status are all recognised, in English or Somali.
+      </p>
     </div>
   );
 }

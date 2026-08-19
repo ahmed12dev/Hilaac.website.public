@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Sora } from "next/font/google";
-import { Footer } from "@/components/layout/Footer";
-import { Navbar } from "@/components/layout/Navbar";
-import { ScrollProgress } from "@/components/layout/ScrollProgress";
 import { getSettings } from "@/lib/api";
 import { LanguageProvider } from "@/lib/i18n/provider";
 import { ThemeProvider, themeInitScript } from "@/lib/theme";

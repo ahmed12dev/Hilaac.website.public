@@ -1,231 +1,199 @@
 import { NextResponse } from "next/server";
 import { currentAdmin } from "@/lib/server/auth";
-import { hasDatabase, getPool, ensureSchema, newId } from "@/lib/server/db";
+import { logActivity } from "@/lib/server/activity";
+import {
+  allMembers,
+  createMember,
+  csvToMembers,
+  deleteMember,
+  importMembers,
+  listMembers,
+  memberStats,
+  membersToCsv,
+  setMemberStatus,
+  updateMember,
+  type MemberInput,
+} from "@/lib/server/members";
 
 export const dynamic = "force-dynamic";
 
-export interface MemberRecord {
-  id: string;
-  membershipNumber: string;
-  fullName: string;
-  phone: string;
-  email: string;
-  region: string;
-  district: string;
-  gender: string;
-  status: "verified" | "active" | "pending";
-  joinedAt: string;
+/**
+ * Members registry.
+ *
+ * Every record is stored in `site_members`, so the registry survives restarts
+ * and redeploys. Filtering and counting happen in SQL rather than in the
+ * browser, so the screen stays fast as the roster grows.
+ */
+
+async function guard() {
+  const admin = await currentAdmin();
+  return admin ?? null;
 }
 
-// Initial mock registry data for standalone/fallback mode
-const FALLBACK_MEMBERS: MemberRecord[] = [
-  {
-    id: "mem-001",
-    membershipNumber: "HIL-2026-00101",
-    fullName: "Maxamed Cabdi Jaamac",
-    phone: "+252 61 555 1234",
-    email: "m.jaamac@gmail.com",
-    region: "Banaadir",
-    district: "Hodan",
-    gender: "Male",
-    status: "verified",
-    joinedAt: "2026-08-15T10:30:00Z",
-  },
-  {
-    id: "mem-002",
-    membershipNumber: "HIL-2026-00102",
-    fullName: "Fadumo Axmed Cali",
-    phone: "+252 61 777 8899",
-    email: "fadumo.ali@yahoo.com",
-    region: "Banaadir",
-    district: "Wadajir",
-    gender: "Female",
-    status: "verified",
-    joinedAt: "2026-08-16T14:15:00Z",
-  },
-  {
-    id: "mem-003",
-    membershipNumber: "HIL-2026-00103",
-    fullName: "Cabdiraxmaan Xasan Guuleed",
-    phone: "+252 90 712 3456",
-    email: "abdirahman.hassan@gmail.com",
-    region: "Puntland",
-    district: "Garowe",
-    gender: "Male",
-    status: "verified",
-    joinedAt: "2026-08-16T18:40:00Z",
-  },
-  {
-    id: "mem-004",
-    membershipNumber: "HIL-2026-00104",
-    fullName: "Sahra Cismaan Nuur",
-    phone: "+252 62 444 3322",
-    email: "sahra.osman@outlook.com",
-    region: "Galmudug",
-    district: "Dhuusamareeb",
-    gender: "Female",
-    status: "active",
-    joinedAt: "2026-08-17T09:10:00Z",
-  },
-  {
-    id: "mem-005",
-    membershipNumber: "HIL-2026-00105",
-    fullName: "Khadar Nuur Warsame",
-    phone: "+252 61 999 0011",
-    email: "khadar.warsame@gmail.com",
-    region: "Hirshabelle",
-    district: "Beledweyne",
-    gender: "Male",
-    status: "pending",
-    joinedAt: "2026-08-17T11:45:00Z",
-  },
-  {
-    id: "mem-006",
-    membershipNumber: "HIL-2026-00106",
-    fullName: "Deeqa Maxamuud Cilmi",
-    phone: "+252 61 222 7788",
-    email: "deeqa.cilmi@gmail.com",
-    region: "Jubaland",
-    district: "Kismaayo",
-    gender: "Female",
-    status: "verified",
-    joinedAt: "2026-08-17T13:20:00Z",
-  },
-  {
-    id: "mem-007",
-    membershipNumber: "HIL-2026-00107",
-    fullName: "Ibraahim Cabdullaahi Sheekh",
-    phone: "+252 61 888 4455",
-    email: "ibrahim.sheikh@gmail.com",
-    region: "South West",
-    district: "Baydhabo",
-    gender: "Male",
-    status: "active",
-    joinedAt: "2026-08-17T15:00:00Z",
-  },
-];
-
-let inMemoryMembers = [...FALLBACK_MEMBERS];
+function unauthorized() {
+  return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+}
 
 export async function GET(request: Request) {
-  const admin = await currentAdmin();
-  if (!admin) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+  const admin = await guard();
+  if (!admin) return unauthorized();
 
-  const { searchParams } = new URL(request.url);
-  const q = (searchParams.get("q") || "").toLowerCase().trim();
-  const region = searchParams.get("region") || "";
-  const status = searchParams.get("status") || "";
+  const params = new URL(request.url).searchParams;
+  const query = {
+    q: params.get("q") || "",
+    region: params.get("region") || "",
+    status: params.get("status") || "",
+  };
 
-  let list = inMemoryMembers;
-
-  if (hasDatabase()) {
-    try {
-      await ensureSchema();
-      const pool = getPool();
-      // If site_registrations table exists, query it
-      const res = await pool.query(
-        `SELECT id, membership_number AS "membershipNumber", full_name AS "fullName",
-                phone, email, region, district, gender, status, created_at AS "joinedAt"
-         FROM site_registrations
-         ORDER BY created_at DESC
-         LIMIT 500`,
-      );
-      if (res.rows.length > 0) {
-        list = res.rows;
-      }
-    } catch {
-      // Fallback to in-memory list
+  try {
+    // ?format=csv streams the full filtered roster as a download.
+    if (params.get("format") === "csv") {
+      const rows = await allMembers(query);
+      const stamp = new Date().toISOString().slice(0, 10);
+      return new NextResponse(membersToCsv(rows), {
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="xisbiga-hilaac-members-${stamp}.csv"`,
+          "Cache-Control": "no-store",
+        },
+      });
     }
+
+    const [{ items, total }, stats] = await Promise.all([
+      listMembers({ ...query, limit: Number(params.get("limit") || 200) }),
+      memberStats(),
+    ]);
+    return NextResponse.json({ ok: true, members: items, total, stats });
+  } catch {
+    return NextResponse.json({ ok: false, error: "Database unavailable." }, { status: 503 });
   }
-
-  const filtered = list.filter((m) => {
-    if (q) {
-      const match =
-        m.fullName.toLowerCase().includes(q) ||
-        m.membershipNumber.toLowerCase().includes(q) ||
-        m.phone.includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.district.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    if (region && m.region !== region) return false;
-    if (status && m.status !== status) return false;
-    return true;
-  });
-
-  return NextResponse.json({
-    ok: true,
-    members: filtered,
-    total: filtered.length,
-    stats: {
-      totalMembers: list.length,
-      verified: list.filter((m) => m.status === "verified").length,
-      active: list.filter((m) => m.status === "active").length,
-      pending: list.filter((m) => m.status === "pending").length,
-    },
-  });
 }
 
 export async function POST(request: Request) {
-  const admin = await currentAdmin();
-  if (!admin) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const admin = await guard();
+  if (!admin) return unauthorized();
+
+  let body: (MemberInput & { csv?: string }) | null;
+  try {
+    body = (await request.json()) as MemberInput & { csv?: string };
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   }
 
   try {
-    const body = await request.json();
-    const newMember: MemberRecord = {
-      id: `mem-${Date.now()}`,
-      membershipNumber: `HIL-2026-${Math.floor(10000 + Math.random() * 90000)}`,
-      fullName: body.fullName || "New Member",
-      phone: body.phone || "",
-      email: body.email || "",
-      region: body.region || "Banaadir",
-      district: body.district || "Hodan",
-      gender: body.gender || "Not specified",
-      status: body.status || "verified",
-      joinedAt: new Date().toISOString(),
-    };
+    // Bulk import from pasted CSV.
+    if (body?.csv) {
+      const parsed = csvToMembers(body.csv);
+      if (!parsed.length) {
+        return NextResponse.json(
+          { ok: false, error: "No rows found. The first line must be a header row." },
+          { status: 400 },
+        );
+      }
+      const result = await importMembers(parsed);
+      await logActivity(
+        admin, "create", "member",
+        `Imported ${result.added} member${result.added === 1 ? "" : "s"} from CSV`,
+      );
+      return NextResponse.json({ ok: true, ...result });
+    }
 
-    inMemoryMembers.unshift(newMember);
+    if (!String(body?.fullName || "").trim()) {
+      return NextResponse.json(
+        { ok: false, error: "Magaca waa loo baahan yahay. / A full name is required." },
+        { status: 400 },
+      );
+    }
 
-    return NextResponse.json({ ok: true, member: newMember });
+    const member = await createMember(body!);
+    await logActivity(admin, "create", "member", `Added member ${member.fullName}`, member.id);
+    return NextResponse.json({ ok: true, member }, { status: 201 });
   } catch {
-    return NextResponse.json({ ok: false, error: "Failed to create member" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Could not save the member." }, { status: 500 });
   }
 }
 
-export async function PATCH(request: Request) {
-  const admin = await currentAdmin();
-  if (!admin) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+export async function PUT(request: Request) {
+  const admin = await guard();
+  if (!admin) return unauthorized();
+
+  let body: MemberInput & { id?: number };
+  try {
+    body = (await request.json()) as MemberInput & { id?: number };
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  }
+
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return NextResponse.json({ ok: false, error: "Missing id." }, { status: 400 });
   }
 
   try {
-    const { id, status } = await request.json();
-    const target = inMemoryMembers.find((m) => m.id === id);
-    if (target && ["verified", "active", "pending"].includes(status)) {
-      target.status = status;
-    }
-    return NextResponse.json({ ok: true });
+    const member = await updateMember(id, body);
+    if (!member) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await logActivity(admin, "update", "member", `Updated member ${member.fullName}`, id);
+    return NextResponse.json({ ok: true, member });
   } catch {
-    return NextResponse.json({ ok: false, error: "Failed to update status" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Could not save the member." }, { status: 500 });
+  }
+}
+
+/** Status-only change, used by the one-click verify button. */
+export async function PATCH(request: Request) {
+  const admin = await guard();
+  if (!admin) return unauthorized();
+
+  let body: { id?: number; status?: string };
+  try {
+    body = (await request.json()) as { id?: number; status?: string };
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  }
+
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || id < 1) {
+    return NextResponse.json({ ok: false, error: "Missing id." }, { status: 400 });
+  }
+
+  try {
+    const member = await setMemberStatus(id, String(body.status || ""));
+    if (!member) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await logActivity(
+      admin, "update", "member",
+      `Set ${member.fullName} to ${member.status}`, id,
+    );
+    return NextResponse.json({ ok: true, member });
+  } catch {
+    return NextResponse.json({ ok: false, error: "Could not update." }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
-  const admin = await currentAdmin();
-  if (!admin) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const admin = await guard();
+  if (!admin) return unauthorized();
+
+  // Accepts ?id= so the button works with a plain query string.
+  const fromQuery = Number(new URL(request.url).searchParams.get("id"));
+  let id = fromQuery;
+  if (!Number.isInteger(id) || id < 1) {
+    try {
+      const body = (await request.json()) as { id?: number };
+      id = Number(body.id);
+    } catch {
+      id = NaN;
+    }
+  }
+  if (!Number.isInteger(id) || id < 1) {
+    return NextResponse.json({ ok: false, error: "Missing id." }, { status: 400 });
   }
 
   try {
-    const { id } = await request.json();
-    inMemoryMembers = inMemoryMembers.filter((m) => m.id !== id);
+    const removed = await deleteMember(id);
+    if (!removed) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await logActivity(admin, "delete", "member", `Removed member #${id}`, id);
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ ok: false, error: "Failed to delete" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Could not delete." }, { status: 500 });
   }
 }

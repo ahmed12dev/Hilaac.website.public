@@ -2,16 +2,21 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BarChart3,
   CalendarDays,
   ExternalLink,
   FolderKanban,
+  HardDrive,
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   MessageSquare,
   Newspaper,
+  Quote,
   Settings,
+  UserCog,
   Users,
   UsersRound,
   X,
@@ -28,13 +33,17 @@ interface Item {
   href: string;
   label: string;
   icon: LucideIcon;
-  soon?: boolean;
+  /** Screens only an owner may open. */
+  ownerOnly?: boolean;
 }
 
 const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "Overview",
-    items: [{ href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+    ],
   },
   {
     title: "Content",
@@ -44,14 +53,23 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { href: "/admin/dashboard/events", label: "Events", icon: CalendarDays },
       { href: "/admin/dashboard/leadership", label: "Leadership", icon: UsersRound },
       { href: "/admin/dashboard/gallery", label: "Gallery", icon: ImageIcon },
+      { href: "/admin/dashboard/testimonials", label: "Testimonials", icon: Quote },
+      { href: "/admin/dashboard/media", label: "Media Library", icon: HardDrive },
+    ],
+  },
+  {
+    title: "People",
+    items: [
+      { href: "/admin/dashboard/members", label: "Members Registry", icon: Users },
+      { href: "/admin/dashboard/messages", label: "Messages", icon: MessageSquare },
+      { href: "/admin/dashboard/subscribers", label: "Subscribers", icon: Mail },
     ],
   },
   {
     title: "Administration",
     items: [
-      { href: "/admin/dashboard/members", label: "Members Registry", icon: Users },
-      { href: "/admin/dashboard/messages", label: "Messages", icon: MessageSquare },
       { href: "/admin/dashboard/settings", label: "Site Settings", icon: Settings },
+      { href: "/admin/dashboard/admins", label: "Administrators", icon: UserCog },
     ],
   },
 ];
@@ -115,41 +133,36 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-5" aria-label="Admin sections">
-        {GROUPS.map((group) => (
+        {GROUPS.filter((group) =>
+          group.items.some((item) => !item.ownerOnly || admin.role === "owner"),
+        ).map((group) => (
           <div key={group.title} className="mb-6 last:mb-0">
             <p className="mb-2 px-3 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-600">
               {group.title}
             </p>
             <ul className="space-y-1">
-              {group.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.soon ? "#" : item.href}
-                      aria-current={active ? "page" : undefined}
-                      aria-disabled={item.soon || undefined}
-                      onClick={(e) => item.soon && e.preventDefault()}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all",
-                        active
-                          ? "bg-gold-gradient text-ink-900 shadow-gold"
-                          : item.soon
-                            ? "cursor-not-allowed text-ink-600"
+              {group.items
+                .filter((item) => !item.ownerOnly || admin.role === "owner")
+                .map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all",
+                          active
+                            ? "bg-gold-gradient text-ink-900 shadow-gold"
                             : "text-ink-300 hover:bg-white/6 hover:text-gold-300",
-                      )}
-                    >
-                      <item.icon className="h-[18px] w-[18px] shrink-0" />
-                      <span className="flex-1">{item.label}</span>
-                      {item.soon && (
-                        <span className="rounded bg-white/6 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide">
-                          Soon
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
+                        )}
+                      >
+                        <item.icon className="h-[18px] w-[18px] shrink-0" />
+                        <span className="flex-1">{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
         ))}

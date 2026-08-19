@@ -61,13 +61,30 @@ export function formatNumber(value: number, locale: Locale = "so"): string {
   return new Intl.NumberFormat(LOCALE_TAG[locale]).format(value);
 }
 
-/** Resolves an admin-supplied media path against the API host. */
+/**
+ * Paths this website serves itself, which must never be rewritten onto the
+ * registration system's host: uploads from the media library, and the images
+ * bundled in /public.
+ */
+const LOCAL_MEDIA_PREFIXES = ["/api/media/", "/images/", "/_next/"];
+
+/**
+ * Resolves a media path.
+ *
+ * Anything absolute, or served by this app, is returned untouched. Only a
+ * legacy relative path from the registration system's admin panel is resolved
+ * against NEXT_PUBLIC_API_BASE.
+ */
 export function mediaUrl(src?: string | null): string | null {
   if (!src) return null;
-  if (/^(https?:)?\/\//.test(src) || src.startsWith("data:")) return src;
+  const value = src.trim();
+  if (!value) return null;
+  if (/^(https?:)?\/\//.test(value) || value.startsWith("data:")) return value;
+  if (LOCAL_MEDIA_PREFIXES.some((prefix) => value.startsWith(prefix))) return value;
+
   const base = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/+$/, "");
-  if (src.startsWith("/")) return base ? `${base}${src}` : src;
-  return base ? `${base}/${src}` : `/${src}`;
+  if (value.startsWith("/")) return base ? `${base}${value}` : value;
+  return base ? `${base}/${value}` : `/${value}`;
 }
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.xisbiga-hilaac.com").replace(/\/+$/, "");

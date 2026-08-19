@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getEvents, getLeaders, getNews, getProjects } from "@/lib/api";
+import {
+  getContentEvents,
+  getContentLeaders,
+  getContentNews,
+  getContentProjects,
+} from "@/lib/api";
 import { t } from "@/lib/utils";
 import type { Locale } from "@/lib/types";
 
@@ -25,17 +30,17 @@ export async function GET(request: Request) {
   if (query.length < 2) return NextResponse.json({ hits: [] });
 
   const [news, projects, events, leaders] = await Promise.all([
-    getNews({ pageSize: 100 }),
-    getProjects(),
-    getEvents(),
-    getLeaders(),
+    getContentNews(100),
+    getContentProjects(),
+    getContentEvents(),
+    getContentLeaders(),
   ]);
 
   const matches = (...fields: (string | undefined | null)[]) =>
     fields.some((field) => field && field.toLowerCase().includes(query));
 
   const hits: SearchHit[] = [
-    ...news.items
+    ...news
       .filter((a) => matches(t(a.title, locale), t(a.excerpt, locale), a.category ?? ""))
       .map<SearchHit>((a) => ({
         id: a.id,

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { MediaPicker } from "./MediaPicker";
 
 const FIELD =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white outline-none " +
@@ -25,12 +26,22 @@ const LABEL = "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] te
 export interface FieldDef {
   key: string;
   label: string;
-  type?: "text" | "textarea" | "number" | "date" | "datetime-local" | "select" | "checkbox";
+  type?:
+    | "text"
+    | "textarea"
+    | "number"
+    | "date"
+    | "datetime-local"
+    | "select"
+    | "checkbox"
+    | "image";
   options?: string[];
   rows?: number;
   /** Grid width out of 12 on desktop. */
   span?: 4 | 6 | 12;
   placeholder?: string;
+  /** Media-library folder an "image" field uploads into. */
+  folder?: string;
 }
 
 /** Every collection row just needs an id; fields are read dynamically. */
@@ -319,6 +330,20 @@ export function CollectionManager<T extends Row>({
                   const cls = span === 4 ? "col-span-12 sm:col-span-4" : span === 6 ? "col-span-12 sm:col-span-6" : "col-span-12";
                   const id = `${collection}-${f.key}`;
                   const value = (draft as Record<string, unknown>)[f.key];
+
+                  if (f.type === "image") {
+                    return (
+                      <div key={f.key} className={cls}>
+                        <MediaPicker
+                          id={id}
+                          label={f.label}
+                          folder={f.folder ?? collection}
+                          value={String(value ?? "")}
+                          onChange={(url) => setField(f.key, url)}
+                        />
+                      </div>
+                    );
+                  }
 
                   if (f.type === "checkbox") {
                     return (

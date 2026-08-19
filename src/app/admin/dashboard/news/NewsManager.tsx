@@ -18,6 +18,7 @@ import {
 import { useMemo, useState, type FormEvent } from "react";
 import type { NewsRow } from "@/lib/server/content";
 import { cn, formatDate } from "@/lib/utils";
+import { MediaPicker } from "../MediaPicker";
 
 const FIELD =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white outline-none " +
@@ -361,10 +362,14 @@ export function NewsManager({ initialItems }: { initialItems: NewsRow[] }) {
                     <input id="author" className={FIELD} value={draft.author ?? ""}
                            onChange={(e) => setDraft({ ...draft, author: e.target.value })} />
                   </div>
-                  <div>
-                    <label className={LABEL} htmlFor="cover">Cover image URL</label>
-                    <input id="cover" className={FIELD} value={draft.cover ?? ""}
-                           onChange={(e) => setDraft({ ...draft, cover: e.target.value })} />
+                  <div className="sm:col-span-2">
+                    <MediaPicker
+                      id="cover"
+                      label="Cover image"
+                      folder="news"
+                      value={draft.cover ?? ""}
+                      onChange={(url) => setDraft({ ...draft, cover: url })}
+                    />
                   </div>
                 </div>
 
