@@ -511,6 +511,95 @@ export async function addSubscriber(email: string): Promise<boolean> {
   return (res.rowCount ?? 0) > 0;
 }
 
+/* ═══════════════════════ constitution ═══════════════════════ */
+
+export interface ConstitutionRow {
+  id: number;
+  chapterNo: string;
+  titleSo: string;
+  titleEn: string;
+  bodySo: string;
+  bodyEn: string;
+  sortOrder: number;
+  published: boolean;
+}
+
+export interface ConstitutionInput {
+  chapterNo?: string;
+  titleSo?: string;
+  titleEn?: string;
+  bodySo?: string;
+  bodyEn?: string;
+  sortOrder?: number;
+  published?: boolean;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapConstitution(r: any): ConstitutionRow {
+  return {
+    id: r.id,
+    chapterNo: r.chapter_no,
+    titleSo: r.title_so,
+    titleEn: r.title_en,
+    bodySo: r.body_so,
+    bodyEn: r.body_en,
+    sortOrder: r.sort_order,
+    published: r.published,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+function constitutionValues(i: ConstitutionInput) {
+  return {
+    chapterNo: clean(i.chapterNo, 30),
+    titleSo: clean(i.titleSo, 300),
+    titleEn: clean(i.titleEn, 300),
+    // Chapters run long; this is the one field with real room in it.
+    bodySo: clean(i.bodySo, 120000),
+    bodyEn: clean(i.bodyEn, 120000),
+    sortOrder: Math.max(0, Math.round(Number(i.sortOrder) || 0)),
+    published: i.published !== false,
+  };
+}
+
+export async function listConstitutionAdmin(): Promise<ConstitutionRow[]> {
+  await ensureSchema();
+  const res = await getPool().query(
+    "SELECT * FROM site_constitution ORDER BY sort_order, id LIMIT 300",
+  );
+  return res.rows.map(mapConstitution);
+}
+
+export async function createConstitutionChapter(
+  input: ConstitutionInput,
+): Promise<ConstitutionRow> {
+  await ensureSchema();
+  const v = constitutionValues(input);
+  const res = await getPool().query(
+    `INSERT INTO site_constitution
+       (chapter_no, title_so, title_en, body_so, body_en, sort_order, published)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [v.chapterNo, v.titleSo, v.titleEn, v.bodySo, v.bodyEn, v.sortOrder, v.published],
+  );
+  return mapConstitution(res.rows[0]);
+}
+
+export async function updateConstitutionChapter(
+  id: number,
+  input: ConstitutionInput,
+): Promise<ConstitutionRow | null> {
+  await ensureSchema();
+  const v = constitutionValues(input);
+  const res = await getPool().query(
+    `UPDATE site_constitution SET
+       chapter_no=$2, title_so=$3, title_en=$4, body_so=$5, body_en=$6,
+       sort_order=$7, published=$8, updated_at=now()
+     WHERE id=$1 RETURNING *`,
+    [id, v.chapterNo, v.titleSo, v.titleEn, v.bodySo, v.bodyEn, v.sortOrder, v.published],
+  );
+  return res.rows[0] ? mapConstitution(res.rows[0]) : null;
+}
+
 /* ═══════════════════════ shared delete ═══════════════════════ */
 
 export type DeletableTable =
@@ -519,7 +608,8 @@ export type DeletableTable =
   | "site_gallery"
   | "site_messages"
   | "site_testimonials"
-  | "site_subscribers";
+  | "site_subscribers"
+  | "site_constitution";
 
 /** Table name is a closed union, so it can never come from user input. */
 export async function deleteRow(table: DeletableTable, id: number): Promise<boolean> {

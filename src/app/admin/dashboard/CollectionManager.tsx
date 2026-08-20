@@ -17,6 +17,7 @@ import {
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { MediaPicker } from "./MediaPicker";
+import { useAdminText } from "./useAdminText";
 
 const FIELD =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white outline-none " +
@@ -25,7 +26,10 @@ const LABEL = "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] te
 
 export interface FieldDef {
   key: string;
+  /** English label. */
   label: string;
+  /** Somali label; falls back to `label` when not supplied. */
+  labelSo?: string;
   type?:
     | "text"
     | "textarea"
@@ -42,6 +46,9 @@ export interface FieldDef {
   placeholder?: string;
   /** Media-library folder an "image" field uploads into. */
   folder?: string;
+  /** Helper line under the field. */
+  hint?: string;
+  hintSo?: string;
 }
 
 /** Every collection row just needs an id; fields are read dynamically. */
@@ -53,6 +60,8 @@ interface Props<T extends Row> {
   /** URL segment: events | leadership | gallery | messages */
   collection: string;
   title: string;
+  /** Somali screen title; falls back to `title`. */
+  titleSo?: string;
   icon: LucideIcon;
   initialItems: T[];
   fields: FieldDef[];
@@ -72,6 +81,7 @@ interface Props<T extends Row> {
 export function CollectionManager<T extends Row>({
   collection,
   title,
+  titleSo,
   icon: Icon,
   initialItems,
   fields,
@@ -82,6 +92,11 @@ export function CollectionManager<T extends Row>({
   summary,
   canCreate = true,
 }: Props<T>) {
+  const { at, locale } = useAdminText();
+  const heading = locale === "so" && titleSo ? titleSo : title;
+  const fieldLabel = (f: FieldDef) => (locale === "so" && f.labelSo ? f.labelSo : f.label);
+  const fieldHint = (f: FieldDef) => (locale === "so" && f.hintSo ? f.hintSo : f.hint);
+
   const [items, setItems] = useState<T[]>(initialItems);
   const [draft, setDraft] = useState<Partial<T> | null>(null);
   const [query, setQuery] = useState("");
@@ -115,7 +130,7 @@ export function CollectionManager<T extends Row>({
       const data = (await res.json()) as { ok?: boolean; item?: T; error?: string };
 
       if (!res.ok || !data.ok || !data.item) {
-        flash("err", data.error ?? "Could not save.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       const saved = data.item;
@@ -123,9 +138,12 @@ export function CollectionManager<T extends Row>({
         editing ? list.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...list],
       );
       setDraft(null);
-      flash("ok", editing ? `${title} updated.` : `${title} added.`);
+      flash(
+        "ok",
+        `${heading} ${editing ? at("common.updatedSuffix") : at("common.addedSuffix")}`,
+      );
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setBusy(false);
     }
@@ -137,13 +155,13 @@ export function CollectionManager<T extends Row>({
       const res = await fetch(`/api/site-admin/${collection}?id=${id}`, { method: "DELETE" });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not delete.");
+        flash("err", data.error ?? at("common.couldNotDelete"));
         return;
       }
       setItems((list) => list.filter((r) => r.id !== id));
-      flash("ok", "Deleted.");
+      flash("ok", at("common.deleted"));
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setConfirmId(null);
       setBusy(false);
@@ -158,9 +176,11 @@ export function CollectionManager<T extends Row>({
     <div className="space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{title}</h1>
+          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{heading}</h1>
           <p className="mt-1.5 text-sm text-ink-400">
-            {summary ? summary(items) : `${items.length} item${items.length === 1 ? "" : "s"}`}
+            {summary
+              ? summary(items)
+              : `${items.length} ${items.length === 1 ? at("common.item") : at("common.items")}`}
           </p>
         </div>
 
@@ -171,7 +191,7 @@ export function CollectionManager<T extends Row>({
             className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5"
           >
             <Plus className="h-4 w-4" />
-            Add {title.replace(/s$/, "")}
+            {at("common.add")} {heading.replace(/s$/, "").toLowerCase()}
           </button>
         )}
       </header>
@@ -199,13 +219,13 @@ export function CollectionManager<T extends Row>({
       {searchable && items.length > 0 && (
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-ink-500" aria-hidden />
-          <label htmlFor={`${collection}-search`} className="sr-only">Search</label>
+          <label htmlFor={`${collection}-search`} className="sr-only">{at("common.search")}</label>
           <input
             id={`${collection}-search`}
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${title.toLowerCase()}…`}
+            placeholder={`${at("common.search")} ${heading.toLowerCase()}…`}
             className={cn(FIELD, "pl-11")}
           />
         </div>
@@ -214,9 +234,11 @@ export function CollectionManager<T extends Row>({
       {visible.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-white/12 py-16 text-center">
           <Icon className="mx-auto mb-4 h-10 w-10 text-ink-600" />
-          <p className="font-semibold">{items.length ? "No matches." : `No ${title.toLowerCase()} yet.`}</p>
+          <p className="font-semibold">
+            {items.length ? at("common.noMatches") : `${heading} — 0`}
+          </p>
           {!items.length && canCreate && (
-            <p className="mt-1 text-sm text-ink-500">Add one to show it on the website.</p>
+            <p className="mt-1 text-sm text-ink-500">{at("common.addOneHint")}</p>
           )}
         </div>
       ) : (
@@ -244,7 +266,7 @@ export function CollectionManager<T extends Row>({
                   <button
                     type="button"
                     onClick={() => setDraft({ ...row })}
-                    aria-label={`Edit ${primary(row)}`}
+                    aria-label={`${at("common.edit")} ${primary(row)}`}
                     className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-ink-300 transition hover:border-gold-500/50 hover:text-gold-300"
                   >
                     <Pencil className="h-4 w-4" />
@@ -253,7 +275,7 @@ export function CollectionManager<T extends Row>({
                 <button
                   type="button"
                   onClick={() => setConfirmId(row.id)}
-                  aria-label={`Delete ${primary(row)}`}
+                  aria-label={`${at("common.delete")} ${primary(row)}`}
                   className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-ink-300 transition hover:border-red-500/50 hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -281,16 +303,16 @@ export function CollectionManager<T extends Row>({
               <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-red-500/12 text-red-400">
                 <Trash2 className="h-5 w-5" />
               </span>
-              <h2 className="font-display text-lg font-bold">Delete this item?</h2>
-              <p className="mt-2 text-sm text-ink-400">This cannot be undone.</p>
+              <h2 className="font-display text-lg font-bold">{at("common.confirmDeleteTitle")}</h2>
+              <p className="mt-2 text-sm text-ink-400">{at("common.confirmDeleteText")}</p>
               <div className="mt-6 flex gap-3">
                 <button type="button" onClick={() => setConfirmId(null)}
                         className="flex-1 rounded-xl border border-white/12 px-4 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6">
-                  Cancel
+                  {at("common.cancel")}
                 </button>
                 <button type="button" onClick={() => remove(confirmId)} disabled={busy}
                         className="flex-1 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500 disabled:opacity-60">
-                  {busy ? "Deleting…" : "Delete"}
+                  {busy ? at("common.deleting") : at("common.delete")}
                 </button>
               </div>
             </motion.div>
@@ -316,9 +338,9 @@ export function CollectionManager<T extends Row>({
             >
               <div className="mb-6 flex items-center justify-between gap-4">
                 <h2 className="font-display text-xl font-extrabold">
-                  {typeof draft.id === "number" ? `Edit ${title.replace(/s$/, "").toLowerCase()}` : `New ${title.replace(/s$/, "").toLowerCase()}`}
+                  {`${typeof draft.id === "number" ? at("common.edit") : at("common.add")} ${heading.replace(/s$/, "").toLowerCase()}`}
                 </h2>
-                <button type="button" onClick={() => setDraft(null)} aria-label="Close"
+                <button type="button" onClick={() => setDraft(null)} aria-label={at("common.close")}
                         className="grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition hover:bg-white/8 hover:text-white">
                   <X className="h-4 w-4" />
                 </button>
@@ -336,7 +358,7 @@ export function CollectionManager<T extends Row>({
                       <div key={f.key} className={cls}>
                         <MediaPicker
                           id={id}
-                          label={f.label}
+                          label={fieldLabel(f)}
                           folder={f.folder ?? collection}
                           value={String(value ?? "")}
                           onChange={(url) => setField(f.key, url)}
@@ -355,7 +377,7 @@ export function CollectionManager<T extends Row>({
                             checked={value !== false}
                             onChange={(e) => setField(f.key, e.target.checked)}
                           />
-                          {f.label}
+                          {fieldLabel(f)}
                         </label>
                       </div>
                     );
@@ -363,7 +385,7 @@ export function CollectionManager<T extends Row>({
 
                   return (
                     <div key={f.key} className={cls}>
-                      <label className={LABEL} htmlFor={id}>{f.label}</label>
+                      <label className={LABEL} htmlFor={id}>{fieldLabel(f)}</label>
                       {f.type === "textarea" ? (
                         <textarea id={id} rows={f.rows ?? 4} className={FIELD}
                                   placeholder={f.placeholder}
@@ -390,6 +412,9 @@ export function CollectionManager<T extends Row>({
                           }
                         />
                       )}
+                      {fieldHint(f) && (
+                        <p className="mt-1.5 text-[0.7rem] text-ink-500">{fieldHint(f)}</p>
+                      )}
                     </div>
                   );
                 })}
@@ -399,11 +424,11 @@ export function CollectionManager<T extends Row>({
                 <button type="submit" disabled={busy}
                         className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-6 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60">
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {busy ? "Saving…" : "Save"}
+                  {busy ? at("common.saving") : at("common.save")}
                 </button>
                 <button type="button" onClick={() => setDraft(null)}
                         className="rounded-xl border border-white/12 px-5 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6">
-                  Cancel
+                  {at("common.cancel")}
                 </button>
               </div>
             </motion.form>

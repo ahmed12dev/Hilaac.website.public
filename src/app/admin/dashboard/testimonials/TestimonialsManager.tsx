@@ -5,15 +5,15 @@ import type { TestimonialRow } from "@/lib/server/collections";
 import { CollectionManager, PublishedTag, type FieldDef } from "../CollectionManager";
 
 const FIELDS: FieldDef[] = [
-  { key: "name", label: "Name", span: 4 },
-  { key: "rating", label: "Rating (1–5)", type: "number", span: 4 },
-  { key: "sortOrder", label: "Display order", type: "number", span: 4 },
-  { key: "roleSo", label: "Role — Somali", span: 6, placeholder: "Beeraley, Shabeellaha" },
-  { key: "roleEn", label: "Role — English", span: 6, placeholder: "Farmer, Shabelle" },
-  { key: "quoteSo", label: "Quote — Somali", type: "textarea", rows: 4, span: 6 },
-  { key: "quoteEn", label: "Quote — English", type: "textarea", rows: 4, span: 6 },
-  { key: "avatar", label: "Photo", type: "image", span: 12, folder: "testimonials" },
-  { key: "published", label: "Show on the website", type: "checkbox" },
+  { key: "name", label: "Name", labelSo: "Magaca", span: 4 },
+  { key: "rating", label: "Rating (1–5)", labelSo: "Qiimaynta (1–5)", type: "number", span: 4 },
+  { key: "sortOrder", label: "Display order", labelSo: "Kala horreynta", type: "number", span: 4 },
+  { key: "roleSo", label: "Role — Somali", labelSo: "Xilka — Soomaali", span: 6, placeholder: "Beeraley, Shabeellaha" },
+  { key: "roleEn", label: "Role — English", labelSo: "Xilka — Ingiriisi", span: 6, placeholder: "Farmer, Shabelle" },
+  { key: "quoteSo", label: "Quote — Somali", labelSo: "Hadalka — Soomaali", type: "textarea", rows: 4, span: 6 },
+  { key: "quoteEn", label: "Quote — English", labelSo: "Hadalka — Ingiriisi", type: "textarea", rows: 4, span: 6 },
+  { key: "avatar", label: "Photo", labelSo: "Sawirka", type: "image", span: 12, folder: "testimonials" },
+  { key: "published", label: "Show on the website", labelSo: "Ka muuji websaydka", type: "checkbox" },
 ];
 
 const EMPTY: Partial<TestimonialRow> = {
@@ -26,6 +26,7 @@ export function TestimonialsManager({ initialItems }: { initialItems: Testimonia
     <CollectionManager<TestimonialRow>
       collection="testimonials"
       title="Testimonials"
+      titleSo="Marag-furidda"
       icon={Quote}
       initialItems={initialItems}
       fields={FIELDS}

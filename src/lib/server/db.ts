@@ -222,6 +222,23 @@ const SCHEMA = `
     created_at TIMESTAMPTZ DEFAULT now()
   );
 
+  /* ── Constitution ──────────────────────────────────────────────────
+     The party constitution, stored one chapter per row so the public
+     reader can page through it like a book and build its own contents
+     list. Ordering is by sort_order, then id. */
+
+  CREATE TABLE IF NOT EXISTS site_constitution (
+    id         SERIAL PRIMARY KEY,
+    chapter_no TEXT NOT NULL DEFAULT '',
+    title_so   TEXT NOT NULL DEFAULT '',
+    title_en   TEXT NOT NULL DEFAULT '',
+    body_so    TEXT NOT NULL DEFAULT '',
+    body_en    TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    published  BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMPTZ DEFAULT now()
+  );
+
   /* ── Testimonials ─────────────────────────────────────────────── */
 
   CREATE TABLE IF NOT EXISTS site_testimonials (
@@ -255,6 +272,7 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_site_mem_region ON site_members (region);
   CREATE INDEX IF NOT EXISTS idx_site_act_time   ON site_activity (created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_site_media_time ON site_media (created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_site_const_ord  ON site_constitution (published, sort_order, id);
 `;
 
 /** Creates the site_* tables once per process. Never touches other tables. */

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentAdmin, type SiteAdmin } from "@/lib/server/auth";
 import { logActivity } from "@/lib/server/activity";
 import {
+  createConstitutionChapter,
   createEvent,
   createGallery,
   createLeader,
@@ -10,10 +11,12 @@ import {
   listEventsAdmin,
   listGalleryAdmin,
   listLeadersAdmin,
+  listConstitutionAdmin,
   listMessages,
   listSubscribers,
   listTestimonialsAdmin,
   markMessageRead,
+  updateConstitutionChapter,
   updateEvent,
   updateGallery,
   updateLeader,
@@ -85,6 +88,15 @@ const COLLECTIONS: Record<string, Handlers> = {
     update: updateTestimonial,
     required: ["name"],
     label: (r) => r.name,
+  },
+  constitution: {
+    table: "site_constitution",
+    entity: "constitution chapter",
+    list: listConstitutionAdmin,
+    create: createConstitutionChapter,
+    update: updateConstitutionChapter,
+    required: ["titleSo", "titleEn"],
+    label: (r) => [r.chapterNo, r.titleEn || r.titleSo].filter(Boolean).join(" · "),
   },
   // Messages arrive from the public contact form; the admin reads, marks and
   // deletes them, but never creates one.

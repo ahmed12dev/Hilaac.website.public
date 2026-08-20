@@ -169,6 +169,7 @@ export interface ContentCounts {
   leaders: number;
   gallery: number;
   testimonials: number;
+  constitution: number;
   media: number;
   members: number;
   subscribers: number;
@@ -188,6 +189,7 @@ export async function contentCounts(): Promise<ContentCounts> {
       (SELECT count(*)::int FROM site_leaders)                     AS leaders,
       (SELECT count(*)::int FROM site_gallery)                     AS gallery,
       (SELECT count(*)::int FROM site_testimonials)                AS testimonials,
+      (SELECT count(*)::int FROM site_constitution)                AS constitution,
       (SELECT count(*)::int FROM site_media)                       AS media,
       (SELECT count(*)::int FROM site_members)                     AS members,
       (SELECT count(*)::int FROM site_subscribers)                 AS subscribers,
@@ -350,6 +352,23 @@ export async function publicTestimonials() {
     quote: L(r.quote_so, r.quote_en),
     avatar: r.avatar,
     rating: Number(r.rating) || 5,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
+
+/** The constitution, in reading order, published chapters only. */
+export async function publicConstitution() {
+  await ensureSchema();
+  const res = await getPool().query(
+    "SELECT * FROM site_constitution WHERE published ORDER BY sort_order, id LIMIT 300",
+  );
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return res.rows.map((r: any) => ({
+    id: String(r.id),
+    chapterNo: r.chapter_no as string,
+    title: L(r.title_so, r.title_en),
+    body: L(r.body_so, r.body_en),
+    updatedAt: r.updated_at,
   }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }

@@ -23,6 +23,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MemberRow, MemberStats } from "@/lib/server/members";
 import { cn, formatDate } from "@/lib/utils";
+import { useAdminText } from "../useAdminText";
 
 const REGIONS = [
   "Banaadir",
@@ -56,6 +57,7 @@ const EMPTY: Draft = {
 };
 
 export function MembersManager() {
+  const { at } = useAdminText();
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [stats, setStats] = useState<MemberStats | null>(null);
   const [total, setTotal] = useState(0);
@@ -98,14 +100,14 @@ export function MembersManager() {
         error?: string;
       };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not load the registry.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       setMembers(data.members ?? []);
       setTotal(data.total ?? 0);
       if (data.stats) setStats(data.stats);
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setLoading(false);
     }
@@ -131,14 +133,14 @@ export function MembersManager() {
       });
       const data = (await res.json()) as { ok?: boolean; member?: MemberRow; error?: string };
       if (!res.ok || !data.ok || !data.member) {
-        flash("err", data.error ?? "Could not save.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       setDraft(null);
-      flash("ok", editing ? "Member updated." : "Member registered.");
+      flash("ok", editing ? at("members.editMember") : at("members.newMember"));
       load();
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setBusy(false);
     }
@@ -156,7 +158,7 @@ export function MembersManager() {
       });
       load();
     } catch {
-      flash("err", "Could not update the status.");
+      flash("err", at("common.couldNotSave"));
     }
   }
 
@@ -166,13 +168,13 @@ export function MembersManager() {
       const res = await fetch(`/api/site-admin/members?id=${id}`, { method: "DELETE" });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not delete.");
+        flash("err", data.error ?? at("common.couldNotDelete"));
         return;
       }
-      flash("ok", "Member removed.");
+      flash("ok", at("common.deleted"));
       load();
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setConfirmId(null);
       setBusy(false);
@@ -202,7 +204,7 @@ export function MembersManager() {
         error?: string;
       };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "The import failed.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       flash(
@@ -212,28 +214,28 @@ export function MembersManager() {
       );
       load();
     } catch {
-      flash("err", "That file could not be read.");
+      flash("err", at("common.couldNotSave"));
     } finally {
       setImporting(false);
     }
   }
 
   const kpis = [
-    { label: "Total registered", value: stats?.total ?? 0, icon: Users, tone: "gold" },
-    { label: "Verified", value: stats?.verified ?? 0, icon: ShieldCheck, tone: "emerald" },
-    { label: "Active", value: stats?.active ?? 0, icon: UserCheck, tone: "sky" },
-    { label: "Pending review", value: stats?.pending ?? 0, icon: Clock, tone: "amber" },
+    { label: at("members.totalRegistered"), value: stats?.total ?? 0, icon: Users, tone: "gold" },
+    { label: at("members.verified"), value: stats?.verified ?? 0, icon: ShieldCheck, tone: "emerald" },
+    { label: at("members.active"), value: stats?.active ?? 0, icon: UserCheck, tone: "sky" },
+    { label: at("members.pending"), value: stats?.pending ?? 0, icon: Clock, tone: "amber" },
   ] as const;
 
   return (
     <div className="space-y-8">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Members Registry</h1>
+          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{at("members.title")}</h1>
           <p className="mt-1 text-sm text-ink-400">
             {stats
-              ? `${stats.total} member${stats.total === 1 ? "" : "s"} · ${stats.regions} region${stats.regions === 1 ? "" : "s"} · ${stats.thisMonth} joined this month`
-              : "Party membership records, verification and roster exports."}
+              ? `${stats.total} · ${stats.regions} ${at("members.regionsWord")} · ${stats.thisMonth} ${at("members.joinedThisMonth")}`
+              : at("members.subtitle")}
           </p>
         </div>
 
@@ -245,7 +247,7 @@ export function MembersManager() {
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-ink-300 transition-colors hover:bg-white/10 hover:text-white"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            Refresh
+            {at("common.refresh")}
           </button>
 
           <input
@@ -270,7 +272,7 @@ export function MembersManager() {
             ) : (
               <FileUp className="h-3.5 w-3.5 text-gold-400" />
             )}
-            Import CSV
+            {at("members.importCsv")}
           </button>
 
           <button
@@ -279,7 +281,7 @@ export function MembersManager() {
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 text-xs font-semibold text-ink-200 transition-colors hover:bg-white/10 hover:text-white"
           >
             <Download className="h-3.5 w-3.5 text-gold-400" />
-            Export CSV
+            {at("members.exportCsv")}
           </button>
 
           <button
@@ -288,7 +290,7 @@ export function MembersManager() {
             className="inline-flex h-10 items-center gap-2 rounded-xl bg-gold-gradient px-4 text-xs font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5"
           >
             <Plus className="h-4 w-4" />
-            Add member
+            {at("members.addMember")}
           </button>
         </div>
       </header>
@@ -352,12 +354,12 @@ export function MembersManager() {
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" />
           <label htmlFor="member-search" className="sr-only">
-            Search members
+            {at("common.search")}
           </label>
           <input
             id="member-search"
             type="search"
-            placeholder="Search by name, membership number, phone, email or district…"
+            placeholder={at("members.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className={cn(FIELD, "pl-10")}
@@ -368,7 +370,7 @@ export function MembersManager() {
           <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1">
             <Filter className="h-3.5 w-3.5 text-ink-400" />
             <label htmlFor="member-region" className="sr-only">
-              Region
+              {at("members.region")}
             </label>
             <select
               id="member-region"
@@ -377,7 +379,7 @@ export function MembersManager() {
               className="bg-transparent py-1.5 text-xs text-white outline-none"
             >
               <option value="All" className="bg-ink-900">
-                All regions
+                {at("members.allRegions")}
               </option>
               {REGIONS.map((r) => (
                 <option key={r} value={r} className="bg-ink-900">
@@ -389,7 +391,7 @@ export function MembersManager() {
 
           <div className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1">
             <label htmlFor="member-status" className="sr-only">
-              Status
+              {at("members.status")}
             </label>
             <select
               id="member-status"
@@ -398,7 +400,7 @@ export function MembersManager() {
               className="bg-transparent py-1.5 text-xs text-white outline-none"
             >
               <option value="All" className="bg-ink-900">
-                All statuses
+                {at("members.allStatuses")}
               </option>
               {STATUSES.map((s) => (
                 <option key={s} value={s} className="bg-ink-900">
@@ -416,13 +418,13 @@ export function MembersManager() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.03] font-semibold uppercase tracking-wider text-ink-400">
-                <th className="px-5 py-3.5">Member ID</th>
-                <th className="px-5 py-3.5">Full name</th>
-                <th className="px-5 py-3.5">Contact</th>
-                <th className="px-5 py-3.5">Location</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5">Joined</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3.5">{at("members.colId")}</th>
+                <th className="px-5 py-3.5">{at("members.colName")}</th>
+                <th className="px-5 py-3.5">{at("members.colContact")}</th>
+                <th className="px-5 py-3.5">{at("members.colLocation")}</th>
+                <th className="px-5 py-3.5">{at("members.colStatus")}</th>
+                <th className="px-5 py-3.5">{at("members.colJoined")}</th>
+                <th className="px-5 py-3.5 text-right">{at("members.colActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-ink-200">
@@ -430,7 +432,7 @@ export function MembersManager() {
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-ink-500">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-gold-400" />
-                    <p className="mt-2 font-medium">Loading the registry…</p>
+                    <p className="mt-2 font-medium">{at("members.loadingRegistry")}</p>
                   </td>
                 </tr>
               ) : members.length === 0 ? (
@@ -438,11 +440,11 @@ export function MembersManager() {
                   <td colSpan={7} className="py-14 text-center text-ink-500">
                     <Users className="mx-auto h-8 w-8 text-ink-600" />
                     <p className="mt-2 font-semibold">
-                      {stats?.total ? "No members match these filters." : "No members yet."}
+                      {stats?.total ? at("members.noneMatch") : at("members.noneYet")}
                     </p>
                     {!stats?.total && (
                       <p className="mt-1 text-xs">
-                        Add one by hand, or import a CSV exported from your registration system.
+                        {at("members.emptyHint")}
                       </p>
                     )}
                   </td>
@@ -492,8 +494,8 @@ export function MembersManager() {
                           <button
                             type="button"
                             onClick={() => setStatusOf(m.id, "verified")}
-                            title="Verify member"
-                            aria-label={`Verify ${m.fullName}`}
+                            title={at("members.verify")}
+                            aria-label={`${at("members.verify")} ${m.fullName}`}
                             className="rounded-lg p-1.5 text-emerald-400 transition-colors hover:bg-emerald-500/10"
                           >
                             <CheckCircle2 className="h-4 w-4" />
@@ -502,8 +504,8 @@ export function MembersManager() {
                         <button
                           type="button"
                           onClick={() => setDraft({ ...m })}
-                          title="Edit member"
-                          aria-label={`Edit ${m.fullName}`}
+                          title={at("common.edit")}
+                          aria-label={`${at("common.edit")} ${m.fullName}`}
                           className="rounded-lg p-1.5 text-ink-300 transition-colors hover:bg-white/8 hover:text-gold-300"
                         >
                           <Pencil className="h-4 w-4" />
@@ -511,8 +513,8 @@ export function MembersManager() {
                         <button
                           type="button"
                           onClick={() => setConfirmId(m.id)}
-                          title="Delete member"
-                          aria-label={`Delete ${m.fullName}`}
+                          title={at("common.delete")}
+                          aria-label={`${at("common.delete")} ${m.fullName}`}
                           className="rounded-lg p-1.5 text-rose-400 transition-colors hover:bg-rose-500/10"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -529,7 +531,7 @@ export function MembersManager() {
 
       {members.length > 0 && (
         <p className="text-xs text-ink-500">
-          Showing {members.length} of {total} matching record{total === 1 ? "" : "s"}.
+          {at("members.showing")} {members.length} {at("members.ofMatching")} {total} {at("members.records")}.
         </p>
       )}
 
@@ -555,9 +557,9 @@ export function MembersManager() {
               <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-red-500/12 text-red-400">
                 <Trash2 className="h-5 w-5" />
               </span>
-              <h2 className="font-display text-lg font-bold">Remove this member?</h2>
+              <h2 className="font-display text-lg font-bold">{at("members.removeTitle")}</h2>
               <p className="mt-2 text-sm text-ink-400">
-                Their registration record will be deleted. This cannot be undone.
+                {at("members.removeText")}
               </p>
               <div className="mt-6 flex gap-3">
                 <button
@@ -565,7 +567,7 @@ export function MembersManager() {
                   onClick={() => setConfirmId(null)}
                   className="flex-1 rounded-xl border border-white/12 px-4 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
                 >
-                  Cancel
+                  {at("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -573,7 +575,7 @@ export function MembersManager() {
                   disabled={busy}
                   className="flex-1 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500 disabled:opacity-60"
                 >
-                  {busy ? "Removing…" : "Remove"}
+                  {busy ? at("members.removing") : at("members.remove")}
                 </button>
               </div>
             </motion.div>
@@ -601,7 +603,7 @@ export function MembersManager() {
             >
               <div className="mb-6 flex items-center justify-between gap-4">
                 <h2 className="font-display text-xl font-extrabold">
-                  {typeof draft.id === "number" ? "Edit member" : "Register a new member"}
+                  {typeof draft.id === "number" ? at("members.editMember") : at("members.newMember")}
                 </h2>
                 <button
                   type="button"
@@ -616,7 +618,7 @@ export function MembersManager() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className={LABEL} htmlFor="m-name">
-                    Full name (Magaca oo dhammaystiran) *
+                    {at("members.fullName")} *
                   </label>
                   <input
                     id="m-name"
@@ -630,7 +632,7 @@ export function MembersManager() {
 
                 <div>
                   <label className={LABEL} htmlFor="m-phone">
-                    Phone (Telefoon)
+                    {at("members.phone")}
                   </label>
                   <input
                     id="m-phone"
@@ -643,7 +645,7 @@ export function MembersManager() {
 
                 <div>
                   <label className={LABEL} htmlFor="m-email">
-                    Email
+                    {at("members.email")}
                   </label>
                   <input
                     id="m-email"
@@ -656,7 +658,7 @@ export function MembersManager() {
 
                 <div>
                   <label className={LABEL} htmlFor="m-region">
-                    Region (Gobolka)
+                    {at("members.region")}
                   </label>
                   <select
                     id="m-region"
@@ -675,7 +677,7 @@ export function MembersManager() {
 
                 <div>
                   <label className={LABEL} htmlFor="m-district">
-                    District (Degmada)
+                    {at("members.district")}
                   </label>
                   <input
                     id="m-district"
@@ -687,7 +689,7 @@ export function MembersManager() {
 
                 <div>
                   <label className={LABEL} htmlFor="m-gender">
-                    Gender (Jinsiga)
+                    {at("members.gender")}
                   </label>
                   <select
                     id="m-gender"
@@ -703,7 +705,7 @@ export function MembersManager() {
 
                 <div>
                   <label className={LABEL} htmlFor="m-status">
-                    Status
+                    {at("members.status")}
                   </label>
                   <select
                     id="m-status"
@@ -723,20 +725,20 @@ export function MembersManager() {
 
                 <div className="sm:col-span-2">
                   <label className={LABEL} htmlFor="m-number">
-                    Membership number
+                    {at("members.number")}
                   </label>
                   <input
                     id="m-number"
                     className={FIELD}
                     value={draft.membershipNumber ?? ""}
                     onChange={(e) => setDraft({ ...draft, membershipNumber: e.target.value })}
-                    placeholder="Leave blank to generate one automatically"
+                    placeholder={at("members.numberHint")}
                   />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className={LABEL} htmlFor="m-note">
-                    Internal note
+                    {at("members.note")}
                   </label>
                   <textarea
                     id="m-note"
@@ -755,14 +757,14 @@ export function MembersManager() {
                   className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-6 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {busy ? "Saving…" : "Save member"}
+                  {busy ? at("common.saving") : at("members.saveMember")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDraft(null)}
                   className="rounded-xl border border-white/12 px-5 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
                 >
-                  Cancel
+                  {at("common.cancel")}
                 </button>
               </div>
             </motion.form>
@@ -772,8 +774,7 @@ export function MembersManager() {
 
       <p className="flex items-start gap-2 text-xs text-ink-500">
         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-        CSV import matches columns by header name — Full Name, Phone, Email, Region, District,
-        Gender and Status are all recognised, in English or Somali.
+        {at("members.csvHint")}
       </p>
     </div>
   );

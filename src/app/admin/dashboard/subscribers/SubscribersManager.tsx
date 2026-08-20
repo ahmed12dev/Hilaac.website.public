@@ -14,6 +14,7 @@ export function SubscribersManager({ initialItems }: { initialItems: SubscriberR
     <CollectionManager<SubscriberRow>
       collection="subscribers"
       title="Subscribers"
+      titleSo="Isdiiwaangeliyayaasha"
       icon={Mail}
       initialItems={initialItems}
       fields={[]}

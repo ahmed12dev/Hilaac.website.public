@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
+  BookOpen,
   CalendarDays,
   ExternalLink,
   FolderKanban,
@@ -11,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  Languages,
   Menu,
   MessageSquare,
   Newspaper,
@@ -27,54 +29,58 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { SiteAdmin } from "@/lib/server/auth";
+import type { AdminKey } from "@/lib/i18n/admin";
 import { cn } from "@/lib/utils";
+import { useAdminText } from "./useAdminText";
 
 interface Item {
   href: string;
-  label: string;
+  label: AdminKey;
   icon: LucideIcon;
   /** Screens only an owner may open. */
   ownerOnly?: boolean;
 }
 
-const GROUPS: { title: string; items: Item[] }[] = [
+const GROUPS: { title: AdminKey; items: Item[] }[] = [
   {
-    title: "Overview",
+    title: "nav.group.overview",
     items: [
-      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/admin/dashboard", label: "nav.dashboard", icon: LayoutDashboard },
+      { href: "/admin/dashboard/analytics", label: "nav.analytics", icon: BarChart3 },
     ],
   },
   {
-    title: "Content",
+    title: "nav.group.content",
     items: [
-      { href: "/admin/dashboard/news", label: "News", icon: Newspaper },
-      { href: "/admin/dashboard/projects", label: "Projects", icon: FolderKanban },
-      { href: "/admin/dashboard/events", label: "Events", icon: CalendarDays },
-      { href: "/admin/dashboard/leadership", label: "Leadership", icon: UsersRound },
-      { href: "/admin/dashboard/gallery", label: "Gallery", icon: ImageIcon },
-      { href: "/admin/dashboard/testimonials", label: "Testimonials", icon: Quote },
-      { href: "/admin/dashboard/media", label: "Media Library", icon: HardDrive },
+      { href: "/admin/dashboard/news", label: "nav.news", icon: Newspaper },
+      { href: "/admin/dashboard/projects", label: "nav.projects", icon: FolderKanban },
+      { href: "/admin/dashboard/events", label: "nav.events", icon: CalendarDays },
+      { href: "/admin/dashboard/leadership", label: "nav.leadership", icon: UsersRound },
+      { href: "/admin/dashboard/gallery", label: "nav.gallery", icon: ImageIcon },
+      { href: "/admin/dashboard/testimonials", label: "nav.testimonials", icon: Quote },
+      { href: "/admin/dashboard/constitution", label: "nav.constitution", icon: BookOpen },
+      { href: "/admin/dashboard/media", label: "nav.media", icon: HardDrive },
     ],
   },
   {
-    title: "People",
+    title: "nav.group.people",
     items: [
-      { href: "/admin/dashboard/members", label: "Members Registry", icon: Users },
-      { href: "/admin/dashboard/messages", label: "Messages", icon: MessageSquare },
-      { href: "/admin/dashboard/subscribers", label: "Subscribers", icon: Mail },
+      { href: "/admin/dashboard/members", label: "nav.members", icon: Users },
+      { href: "/admin/dashboard/messages", label: "nav.messages", icon: MessageSquare },
+      { href: "/admin/dashboard/subscribers", label: "nav.subscribers", icon: Mail },
     ],
   },
   {
-    title: "Administration",
+    title: "nav.group.administration",
     items: [
-      { href: "/admin/dashboard/settings", label: "Site Settings", icon: Settings },
-      { href: "/admin/dashboard/admins", label: "Administrators", icon: UserCog },
+      { href: "/admin/dashboard/settings", label: "nav.settings", icon: Settings },
+      { href: "/admin/dashboard/admins", label: "nav.admins", icon: UserCog },
     ],
   },
 ];
 
 export function AdminNav({ admin }: { admin: SiteAdmin }) {
+  const { at, locale, toggleLocale } = useAdminText();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -118,13 +124,13 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
             Xisbiga <span className="text-gradient-gold">Hilaac</span>
           </span>
           <span className="block text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-500">
-            Website Admin
+            {at("nav.websiteAdmin")}
           </span>
         </span>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          aria-label="Close menu"
+          aria-label={at("nav.closeMenu")}
           className="ml-auto grid h-9 w-9 place-items-center rounded-lg text-ink-400 transition hover:bg-white/6 hover:text-gold-300 lg:hidden"
         >
           <X className="h-4 w-4" />
@@ -132,13 +138,13 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-5" aria-label="Admin sections">
+      <nav className="flex-1 overflow-y-auto px-3 py-5" aria-label={at("nav.sections")}>
         {GROUPS.filter((group) =>
           group.items.some((item) => !item.ownerOnly || admin.role === "owner"),
         ).map((group) => (
           <div key={group.title} className="mb-6 last:mb-0">
             <p className="mb-2 px-3 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink-600">
-              {group.title}
+              {at(group.title)}
             </p>
             <ul className="space-y-1">
               {group.items
@@ -158,7 +164,7 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
                         )}
                       >
                         <item.icon className="h-[18px] w-[18px] shrink-0" />
-                        <span className="flex-1">{item.label}</span>
+                        <span className="flex-1">{at(item.label)}</span>
                       </Link>
                     </li>
                   );
@@ -180,12 +186,25 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
           </span>
         </div>
 
+        <button
+          type="button"
+          onClick={toggleLocale}
+          aria-label={at("common.language")}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6 hover:text-gold-300"
+        >
+          <Languages className="h-[18px] w-[18px]" />
+          <span className="flex-1 text-left">{at("common.language")}</span>
+          <span className="rounded bg-white/8 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide">
+            {locale === "so" ? at("common.somali") : at("common.english")}
+          </span>
+        </button>
+
         <Link
           href="/"
           className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6 hover:text-gold-300"
         >
           <ExternalLink className="h-[18px] w-[18px]" />
-          View website
+          {at("nav.viewSite")}
         </Link>
 
         <button
@@ -195,7 +214,7 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-red-500/12 hover:text-red-400 disabled:opacity-60"
         >
           <LogOut className="h-[18px] w-[18px]" />
-          Sign out
+          {at("nav.signOut")}
         </button>
       </div>
     </div>
@@ -208,14 +227,14 @@ export function AdminNav({ admin }: { admin: SiteAdmin }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open menu"
+          aria-label={at("nav.openMenu")}
           aria-expanded={open}
           className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 text-ink-300 transition hover:border-gold-500/50 hover:text-gold-300"
         >
           <Menu className="h-[18px] w-[18px]" />
         </button>
         <span className="font-display text-sm font-extrabold">
-          Website <span className="text-gradient-gold">Admin</span>
+          {at("nav.websiteAdmin")}
         </span>
       </div>
 

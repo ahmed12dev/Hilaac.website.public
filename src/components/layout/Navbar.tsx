@@ -17,6 +17,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const LINKS: { href: string; key: TranslationKey }[] = [
   { href: "/", key: "nav.home" },
   { href: "/about", key: "nav.about" },
+  { href: "/constitution", key: "nav.constitution" },
   { href: "/leadership", key: "nav.leadership" },
   { href: "/news", key: "nav.news" },
   { href: "/projects", key: "nav.projects" },

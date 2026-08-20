@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import {
   changeOwnPassword,
   createAdmin,
   currentAdmin,
   deleteAdmin,
   listAdmins,
+  SESSION_COOKIE,
   updateAdmin,
 } from "@/lib/server/auth";
 import { logActivity } from "@/lib/server/activity";
@@ -77,6 +79,7 @@ export async function PUT(request: Request) {
   let body: {
     id?: string;
     name?: string;
+    email?: string;
     role?: string;
     password?: string;
     currentPassword?: string;
@@ -120,11 +123,29 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const result = await updateAdmin(id, body);
+    // An owner editing their own password must not be signed out by it, so the
+    // session making the request is preserved while other devices are dropped.
+    const store = await cookies();
+    const currentToken = id === admin.id ? store.get(SESSION_COOKIE)?.value : undefined;
+
+    const result = await updateAdmin(id, body, currentToken);
     if ("error" in result) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
     }
-    await logActivity(admin, "update", "admin", `Updated administrator ${result.email}`, id);
+
+    const changed = [
+      body.email !== undefined ? "email" : null,
+      body.password ? "password" : null,
+      body.role !== undefined ? "role" : null,
+      body.name !== undefined ? "name" : null,
+    ].filter(Boolean);
+
+    await logActivity(
+      admin, "update", "admin",
+      `Updated ${id === admin.id ? "their own account" : `administrator ${result.email}`}` +
+        (changed.length ? ` (${changed.join(", ")})` : ""),
+      id,
+    );
     return NextResponse.json({ ok: true, item: result });
   } catch {
     return NextResponse.json({ ok: false, error: "Could not save." }, { status: 500 });

@@ -19,6 +19,8 @@ import {
 import { useEffect, useState } from "react";
 import { MediaPicker } from "../MediaPicker";
 import { cn } from "@/lib/utils";
+import { useAdminText } from "../useAdminText";
+import type { AdminKey } from "@/lib/i18n/admin";
 
 /**
  * Everything on the public website that is not a content row.
@@ -77,14 +79,14 @@ interface SettingsShape {
 }
 
 const TABS = [
-  { id: "announcement", label: "Announcement", icon: Bell },
-  { id: "identity", label: "Identity", icon: Sparkles },
-  { id: "hero", label: "Homepage hero", icon: Images },
-  { id: "about", label: "About", icon: Info },
-  { id: "contact", label: "Contact", icon: Phone },
-  { id: "socials", label: "Social links", icon: Share2 },
-  { id: "advanced", label: "Advanced", icon: Globe },
-] as const;
+  { id: "announcement", label: "settings.tab.announcement", icon: Bell },
+  { id: "identity", label: "settings.tab.identity", icon: Sparkles },
+  { id: "hero", label: "settings.tab.hero", icon: Images },
+  { id: "about", label: "settings.tab.about", icon: Info },
+  { id: "contact", label: "settings.tab.contact", icon: Phone },
+  { id: "socials", label: "settings.tab.socials", icon: Share2 },
+  { id: "advanced", label: "settings.tab.advanced", icon: Globe },
+] as const satisfies readonly { id: string; label: AdminKey; icon: unknown }[];
 
 type TabId = (typeof TABS)[number]["id"];
 
@@ -186,6 +188,7 @@ function Pair({
 }
 
 export function SettingsManager() {
+  const { at } = useAdminText();
   const [settings, setSettings] = useState<SettingsShape | null>(null);
   const [tab, setTab] = useState<TabId>("announcement");
   const [loading, setLoading] = useState(true);
@@ -207,13 +210,13 @@ export function SettingsManager() {
           error?: string;
         };
         if (!res.ok || !data.ok) {
-          flash("err", data.error ?? "Could not load settings.");
+          flash("err", data.error ?? at("common.couldNotSave"));
           setSettings(normalise(null));
           return;
         }
         setSettings(normalise(data.settings ?? null));
       } catch {
-        flash("err", "Network error.");
+        flash("err", at("common.networkError"));
         setSettings(normalise(null));
       } finally {
         setLoading(false);
@@ -235,12 +238,12 @@ export function SettingsManager() {
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not save.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
-      flash("ok", "Saved. The public website is showing these values now.");
+      flash("ok", at("settings.saved"));
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setSaving(false);
     }
@@ -250,7 +253,7 @@ export function SettingsManager() {
     return (
       <div className="py-24 text-center text-ink-500">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-gold-400" />
-        <p className="mt-3 text-sm font-medium">Loading site settings…</p>
+        <p className="mt-3 text-sm font-medium">{at("settings.loading")}</p>
       </div>
     );
   }
@@ -262,9 +265,9 @@ export function SettingsManager() {
     <form onSubmit={save} className="space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Site settings</h1>
+          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{at("settings.title")}</h1>
           <p className="mt-1.5 text-sm text-ink-400">
-            Everything on the public website that is not a news article, project or event.
+            {at("settings.subtitle")}
           </p>
         </div>
 
@@ -274,7 +277,7 @@ export function SettingsManager() {
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gold-gradient px-5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? at("common.saving") : at("settings.save")}
         </button>
       </header>
 
@@ -318,7 +321,7 @@ export function SettingsManager() {
             )}
           >
             <item.icon className="h-3.5 w-3.5" />
-            {item.label}
+            {at(item.label)}
           </button>
         ))}
       </div>
@@ -732,7 +735,7 @@ export function SettingsManager() {
           className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gold-gradient px-6 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Saving…" : "Save settings"}
+          {saving ? at("common.saving") : at("settings.save")}
         </button>
       </div>
     </form>

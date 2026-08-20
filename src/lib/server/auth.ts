@@ -313,31 +313,76 @@ export async function createAdmin(input: {
   }
 }
 
+/**
+ * Owner-level edit of any account, including the owner's own.
+ *
+ * An owner is already authenticated, so they may set an email or password
+ * outright without re-entering the old one. `keepSessionToken` is the session
+ * doing the editing: every OTHER session for that account is signed out after
+ * a password change, but the editor is not thrown out of their own dashboard.
+ */
 export async function updateAdmin(
   id: string,
-  input: { name?: string; role?: string; password?: string },
+  input: { name?: string; email?: string; role?: string; password?: string },
+  keepSessionToken?: string,
 ): Promise<AdminAccount | { error: string }> {
   await ensureSchema();
+
   const password = String(input.password || "");
   if (password && password.length < 8) {
     return { error: "Password must be at least 8 characters." };
   }
 
-  const res = await getPool().query(
-    `UPDATE site_admins SET
-       name = COALESCE($2, name),
-       role = COALESCE($3, role),
-       password_hash = COALESCE($4, password_hash)
-     WHERE id = $1
-     RETURNING id, email, name, role, last_seen, created_at`,
-    [
-      id,
-      input.name === undefined ? null : String(input.name).trim().slice(0, 120),
-      input.role === undefined ? null : normaliseRole(input.role),
-      password ? hashPassword(password) : null,
-    ],
-  );
+  let email: string | null = null;
+  if (input.email !== undefined) {
+    email = String(input.email).trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { error: "That is not a valid email address." };
+    }
+    // Postgres would raise a unique violation; this gives a clearer message.
+    const taken = await getPool().query(
+      "SELECT 1 FROM site_admins WHERE email = $1 AND id <> $2",
+      [email, id],
+    );
+    if (taken.rowCount) return { error: "Another account already uses that email." };
+  }
+
+  const pool = getPool();
+  let res;
+  try {
+    res = await pool.query(
+      `UPDATE site_admins SET
+         name = COALESCE($2, name),
+         email = COALESCE($3, email),
+         role = COALESCE($4, role),
+         password_hash = COALESCE($5, password_hash)
+       WHERE id = $1
+       RETURNING id, email, name, role, last_seen, created_at`,
+      [
+        id,
+        input.name === undefined ? null : String(input.name).trim().slice(0, 120),
+        email,
+        input.role === undefined ? null : normaliseRole(input.role),
+        password ? hashPassword(password) : null,
+      ],
+    );
+  } catch {
+    return { error: "That email is already in use." };
+  }
+
   if (!res.rows[0]) return { error: "Account not found." };
+
+  // A new password invalidates sessions on other devices.
+  if (password) {
+    await pool
+      .query(
+        `DELETE FROM site_sessions
+          WHERE admin_id = $1 AND ($2::text IS NULL OR token <> $2)`,
+        [id, keepSessionToken ?? null],
+      )
+      .catch(() => undefined);
+  }
+
   return mapAdmin(res.rows[0]);
 }
 

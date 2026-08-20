@@ -15,12 +15,14 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn, formatDate } from "@/lib/utils";
 import { formatBytes, type MediaItem } from "../MediaPicker";
+import { useAdminText } from "../useAdminText";
 
 /**
  * The media library as a full screen: upload here once, then pick the same
  * image from any content editor.
  */
 export function MediaManager() {
+  const { at } = useAdminText();
   const [items, setItems] = useState<MediaItem[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
   const [folder, setFolder] = useState("all");
@@ -125,9 +127,9 @@ export function MediaManager() {
     <div className="space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Media library</h1>
+          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{at("media.title")}</h1>
           <p className="mt-1.5 text-sm text-ink-400">
-            {items.length} image{items.length === 1 ? "" : "s"} · {formatBytes(totalBytes)} stored
+            {items.length} {at("media.images")} · {formatBytes(totalBytes)} {at("media.stored")}
           </p>
         </div>
 
@@ -149,7 +151,7 @@ export function MediaManager() {
           className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {uploading ? "Uploading…" : "Upload images"}
+          {uploading ? at("media.uploading") : at("media.upload")}
         </button>
       </header>
 
@@ -179,10 +181,9 @@ export function MediaManager() {
         )}
       >
         <HardDrive className="mx-auto h-8 w-8 text-ink-500" />
-        <p className="mt-2 text-sm font-semibold">Drag images here to upload</p>
+        <p className="mt-2 text-sm font-semibold">{at("media.dragHere")}</p>
         <p className="mt-1 text-xs text-ink-500">
-          JPG, PNG, WebP, GIF or AVIF · up to 5 MB each · stored in your database, so they
-          survive every redeploy
+          {at("media.formats")}
         </p>
       </div>
 
@@ -190,21 +191,21 @@ export function MediaManager() {
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-ink-500" />
           <label htmlFor="media-search" className="sr-only">
-            Search the library
+            {at("common.search")}
           </label>
           <input
             id="media-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by file name…"
+            placeholder={at("media.searchPlaceholder")}
             className="w-full rounded-xl border border-white/12 bg-white/5 py-2.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-ink-500 focus:border-gold-500/70"
           />
         </div>
 
         <div className="rounded-xl border border-white/12 bg-white/5 px-3">
           <label htmlFor="media-folder" className="sr-only">
-            Folder
+            {at("media.allFolders")}
           </label>
           <select
             id="media-folder"
@@ -213,7 +214,7 @@ export function MediaManager() {
             className="bg-transparent py-2.5 text-sm text-white outline-none"
           >
             <option value="all" className="bg-ink-900">
-              All folders
+              {at("media.allFolders")}
             </option>
             {folders.map((f) => (
               <option key={f} value={f} className="bg-ink-900">
@@ -232,11 +233,11 @@ export function MediaManager() {
         <div className="rounded-3xl border border-dashed border-white/12 py-16 text-center">
           <ImageIcon className="mx-auto mb-4 h-10 w-10 text-ink-600" />
           <p className="font-semibold">
-            {items.length ? "No images match that search." : "No images uploaded yet."}
+            {items.length ? at("common.noMatches") : at("media.noneYet")}
           </p>
           {!items.length && (
             <p className="mt-1 text-sm text-ink-500">
-              Upload one and it becomes available in every content editor.
+              {at("media.noneHint")}
             </p>
           )}
         </div>
@@ -267,18 +268,18 @@ export function MediaManager() {
                   >
                     {copied === item.id ? (
                       <>
-                        <Check className="h-3 w-3" /> Copied
+                        <Check className="h-3 w-3" /> {at("media.copied")}
                       </>
                     ) : (
                       <>
-                        <Copy className="h-3 w-3" /> Copy link
+                        <Copy className="h-3 w-3" /> {at("media.copyLink")}
                       </>
                     )}
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmId(item.id)}
-                    aria-label={`Delete ${item.filename}`}
+                    aria-label={`${at("common.delete")} ${item.filename}`}
                     className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 text-ink-300 transition hover:border-red-500/50 hover:text-red-400"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -311,9 +312,9 @@ export function MediaManager() {
               <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-red-500/12 text-red-400">
                 <Trash2 className="h-5 w-5" />
               </span>
-              <h2 className="font-display text-lg font-bold">Delete this image?</h2>
+              <h2 className="font-display text-lg font-bold">{at("media.deleteTitle")}</h2>
               <p className="mt-2 text-sm text-ink-400">
-                Any page still using it will show a broken image. This cannot be undone.
+                {at("media.deleteText")}
               </p>
               <div className="mt-6 flex gap-3">
                 <button
@@ -321,14 +322,14 @@ export function MediaManager() {
                   onClick={() => setConfirmId(null)}
                   className="flex-1 rounded-xl border border-white/12 px-4 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
                 >
-                  Cancel
+                  {at("common.cancel")}
                 </button>
                 <button
                   type="button"
                   onClick={() => remove(confirmId)}
                   className="flex-1 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500"
                 >
-                  Delete
+                  {at("common.delete")}
                 </button>
               </div>
             </motion.div>

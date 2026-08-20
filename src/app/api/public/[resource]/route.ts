@@ -7,6 +7,7 @@ import {
   publicNews,
   publicProjects,
   publicSettings,
+  publicConstitution,
 } from "@/lib/server/content";
 
 /**
@@ -105,6 +106,11 @@ export async function GET(
 
       case "gallery": {
         const items = await publicGallery(query.get("type") || undefined);
+        return ok(items, { total: items.length });
+      }
+
+      case "constitution": {
+        const items = await publicConstitution();
         return ok(items, { total: items.length });
       }
 

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ActivityRow, AnalyticsSnapshot, DayCount } from "@/lib/server/activity";
 import type { LiveTotals } from "@/lib/types";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
+import { useAdminText } from "../useAdminText";
 
 /* ───────────────────────────── charts ───────────────────────────── */
 
@@ -32,10 +33,14 @@ function AreaChart({
   data,
   tone = "gold",
   label,
+  emptyText,
+  periodText,
 }: {
   data: DayCount[];
   tone?: "gold" | "sky";
   label: string;
+  emptyText: string;
+  periodText: string;
 }) {
   const width = 640;
   const height = 160;
@@ -44,7 +49,7 @@ function AreaChart({
   if (data.length < 2) {
     return (
       <p className="grid h-40 place-items-center text-xs text-ink-500">
-        Not enough data yet to draw {label}.
+        {emptyText} {label}.
       </p>
     );
   }
@@ -81,7 +86,7 @@ function AreaChart({
       </svg>
       <div className="mt-2 flex justify-between text-[0.65rem] text-ink-500">
         <span>{formatDate(data[0].day, "en")}</span>
-        <span className="font-semibold text-ink-300">{total} in this period</span>
+        <span className="font-semibold text-ink-300">{total} {periodText}</span>
         <span>{formatDate(data[data.length - 1].day, "en")}</span>
       </div>
     </div>
@@ -89,9 +94,15 @@ function AreaChart({
 }
 
 /** Horizontal bars, used for the regional breakdown. */
-function BarList({ rows }: { rows: { region: string; count: number }[] }) {
+function BarList({
+  rows,
+  emptyText,
+}: {
+  rows: { region: string; count: number }[];
+  emptyText: string;
+}) {
   if (!rows.length) {
-    return <p className="py-8 text-center text-xs text-ink-500">No members recorded yet.</p>;
+    return <p className="py-8 text-center text-xs text-ink-500">{emptyText}</p>;
   }
   const max = Math.max(...rows.map((r) => r.count));
 
@@ -161,6 +172,7 @@ const ACTION_TONE: Record<string, string> = {
 /* ───────────────────────────── the screen ───────────────────────────── */
 
 export function AnalyticsView() {
+  const { at } = useAdminText();
   const [snapshot, setSnapshot] = useState<AnalyticsSnapshot | null>(null);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [live, setLive] = useState<LiveTotals | null>(null);
@@ -181,14 +193,14 @@ export function AnalyticsView() {
         error?: string;
       };
       if (!res.ok || !data.ok || !data.snapshot) {
-        setError(data.error ?? "Could not load analytics.");
+        setError(data.error ?? at("common.couldNotSave"));
         return;
       }
       setSnapshot(data.snapshot);
       setActivity(data.activity ?? []);
       setLive(data.live ?? null);
     } catch {
-      setError("Network error.");
+      setError(at("common.networkError"));
     } finally {
       setLoading(false);
     }
@@ -202,7 +214,7 @@ export function AnalyticsView() {
     return (
       <div className="py-24 text-center text-ink-500">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-gold-400" />
-        <p className="mt-3 text-sm font-medium">Counting everything…</p>
+        <p className="mt-3 text-sm font-medium">{at("analytics.counting")}</p>
       </div>
     );
   }
@@ -216,7 +228,7 @@ export function AnalyticsView() {
           onClick={load}
           className="mt-4 rounded-xl border border-white/12 px-4 py-2 text-sm font-semibold text-ink-200 hover:bg-white/6"
         >
-          Try again
+          {at("analytics.tryAgain")}
         </button>
       </div>
     );
@@ -228,16 +240,16 @@ export function AnalyticsView() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Analytics</h1>
+          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{at("analytics.title")}</h1>
           <p className="mt-1.5 text-sm text-ink-400">
-            Everything below is counted from your own database, in real time.
+            {at("analytics.subtitle")}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <div className="rounded-xl border border-white/12 bg-white/5 px-3">
             <label htmlFor="range" className="sr-only">
-              Time range
+              {at("analytics.title")}
             </label>
             <select
               id="range"
@@ -246,13 +258,13 @@ export function AnalyticsView() {
               className="bg-transparent py-2.5 text-sm text-white outline-none"
             >
               <option value={7} className="bg-ink-900">
-                Last 7 days
+                {at("analytics.last7")}
               </option>
               <option value={30} className="bg-ink-900">
-                Last 30 days
+                {at("analytics.last30")}
               </option>
               <option value={90} className="bg-ink-900">
-                Last 90 days
+                {at("analytics.last90")}
               </option>
             </select>
           </div>
@@ -263,7 +275,7 @@ export function AnalyticsView() {
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-xs font-semibold text-ink-300 transition hover:bg-white/10 hover:text-white"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            Refresh
+            {at("common.refresh")}
           </button>
         </div>
       </header>
@@ -274,32 +286,32 @@ export function AnalyticsView() {
           icon={Users}
           tone="gold"
           value={formatNumber(s.members.total, "en")}
-          label="Members in registry"
+          label={at("analytics.membersInRegistry")}
         />
         <Tile
           icon={ShieldCheck}
           tone="emerald"
           value={formatNumber(s.members.verified, "en")}
-          label="Verified"
+          label={at("analytics.verified")}
         />
         <Tile
           icon={MessageSquare}
           tone="sky"
           value={`${s.messages.unread} / ${s.messages.total}`}
-          label="Unread messages"
+          label={at("analytics.unreadMessages")}
         />
         <Tile
           icon={Mail}
           value={formatNumber(s.subscribers, "en")}
-          label="Newsletter subscribers"
+          label={at("analytics.subscribers")}
         />
       </section>
 
       {live && (
         <p className="flex items-center gap-2 rounded-2xl border border-gold-500/20 bg-gold-500/[0.06] px-4 py-3 text-xs text-ink-300">
           <TrendingUp className="h-4 w-4 shrink-0 text-gold-400" />
-          Registration system reports {formatNumber(live.totalMembers, "en")} members across{" "}
-          {live.totalRegions} regions and {live.totalDistricts} districts.
+          {at("analytics.upstream")} {formatNumber(live.totalMembers, "en")} · {live.totalRegions}{" "}
+          {at("members.regionsWord")} · {live.totalDistricts} {at("members.district")}
         </p>
       )}
 
@@ -307,41 +319,53 @@ export function AnalyticsView() {
       <section className="grid gap-5 lg:grid-cols-2">
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-            New members
+            {at("analytics.newMembers")}
           </h2>
-          <AreaChart data={s.memberGrowth} tone="gold" label="new members" />
+          <AreaChart
+            data={s.memberGrowth}
+            tone="gold"
+            label={at("analytics.newMembers").toLowerCase()}
+            emptyText={at("analytics.notEnough")}
+            periodText={at("analytics.inPeriod")}
+          />
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-            Contact messages
+            {at("analytics.contactMessages")}
           </h2>
-          <AreaChart data={s.messagesByDay} tone="sky" label="messages" />
+          <AreaChart
+            data={s.messagesByDay}
+            tone="sky"
+            label={at("analytics.contactMessages").toLowerCase()}
+            emptyText={at("analytics.notEnough")}
+            periodText={at("analytics.inPeriod")}
+          />
         </div>
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-            Members by region
+            {at("analytics.byRegion")}
           </h2>
-          <BarList rows={s.membersByRegion} />
+          <BarList rows={s.membersByRegion} emptyText={at("analytics.noMembers")} />
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-            Published content
+            {at("analytics.publishedContent")}
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Tile icon={Newspaper} value={String(s.content.news)} label="Articles" />
-            <Tile icon={FolderKanban} value={String(s.content.projects)} label="Projects" />
-            <Tile icon={CalendarDays} value={String(s.content.events)} label="Events" />
-            <Tile icon={UsersRound} value={String(s.content.leaders)} label="Leaders" />
-            <Tile icon={ImageIcon} value={String(s.content.gallery)} label="Gallery" />
+            <Tile icon={Newspaper} value={String(s.content.news)} label={at("analytics.articles")} />
+            <Tile icon={FolderKanban} value={String(s.content.projects)} label={at("analytics.projects")} />
+            <Tile icon={CalendarDays} value={String(s.content.events)} label={at("analytics.events")} />
+            <Tile icon={UsersRound} value={String(s.content.leaders)} label={at("analytics.leaders")} />
+            <Tile icon={ImageIcon} value={String(s.content.gallery)} label={at("analytics.gallery")} />
             <Tile
               icon={ImageIcon}
               value={String(s.mediaCount)}
-              label={`Media · ${(s.mediaBytes / 1024 / 1024).toFixed(1)} MB`}
+              label={`${at("analytics.media")} · ${(s.mediaBytes / 1024 / 1024).toFixed(1)} MB`}
             />
           </div>
         </div>
@@ -351,12 +375,12 @@ export function AnalyticsView() {
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
         <h2 className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
           <Activity className="h-3.5 w-3.5" />
-          Activity log
+          {at("analytics.activityLog")}
         </h2>
 
         {activity.length === 0 ? (
           <p className="py-8 text-center text-xs text-ink-500">
-            Nothing recorded yet. Every change made from this dashboard will appear here.
+            {at("analytics.noActivity")}
           </p>
         ) : (
           <ul className="divide-y divide-white/6">

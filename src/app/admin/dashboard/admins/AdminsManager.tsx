@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import type { AdminAccount, SiteAdmin } from "@/lib/server/auth";
 import { cn, formatDate } from "@/lib/utils";
+import { useAdminText } from "../useAdminText";
 
 const FIELD =
   "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white outline-none " +
@@ -33,6 +34,7 @@ interface Draft {
 const EMPTY: Draft = { email: "", name: "", role: "editor", password: "" };
 
 export function AdminsManager({ me }: { me: SiteAdmin }) {
+  const { at } = useAdminText();
   const [items, setItems] = useState<AdminAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -62,12 +64,12 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
       const res = await fetch("/api/site-admin/admins");
       const data = (await res.json()) as { ok?: boolean; items?: AdminAccount[]; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not load accounts.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       setItems(data.items ?? []);
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setLoading(false);
     }
@@ -91,14 +93,14 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
       });
       const data = (await res.json()) as { ok?: boolean; item?: AdminAccount; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not save.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       setDraft(null);
-      flash("ok", editing ? "Account updated." : "Administrator added.");
+      flash("ok", editing ? at("admins.accountUpdated") : at("admins.adminAdded"));
       load();
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setBusy(false);
     }
@@ -112,13 +114,13 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not delete.");
+        flash("err", data.error ?? at("common.couldNotDelete"));
         return;
       }
-      flash("ok", "Account removed.");
+      flash("ok", at("admins.accountRemoved"));
       load();
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setConfirmId(null);
       setBusy(false);
@@ -136,14 +138,14 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
-        flash("err", data.error ?? "Could not change the password.");
+        flash("err", data.error ?? at("common.couldNotSave"));
         return;
       }
       setCurrentPassword("");
       setNextPassword("");
-      flash("ok", "Password changed. Other devices have been signed out.");
+      flash("ok", at("admins.passwordChanged"));
     } catch {
-      flash("err", "Network error.");
+      flash("err", at("common.networkError"));
     } finally {
       setChangingPassword(false);
     }
@@ -153,11 +155,11 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Administrators</h1>
+          <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{at("admins.title")}</h1>
           <p className="mt-1.5 text-sm text-ink-400">
             {isOwner
-              ? "Who can sign in to this dashboard, and what each of them may do."
-              : "Change the password for your own account."}
+              ? at("admins.subtitleOwner")
+              : at("admins.subtitleEditor")}
           </p>
         </div>
 
@@ -168,7 +170,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
             className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5"
           >
             <Plus className="h-4 w-4" />
-            Add administrator
+            {at("admins.addAdmin")}
           </button>
         )}
       </header>
@@ -207,10 +209,8 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
           ) : items.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-white/12 py-14 text-center">
               <UserCog className="mx-auto mb-3 h-9 w-9 text-ink-600" />
-              <p className="font-semibold">No stored accounts yet.</p>
-              <p className="mt-1 text-sm text-ink-500">
-                You are signed in with the credentials set in the server environment.
-              </p>
+              <p className="font-semibold">{at("admins.noneStored")}</p>
+              <p className="mt-1 text-sm text-ink-500">{at("admins.noneStoredHint")}</p>
             </div>
           ) : (
             <ul className="space-y-3">
@@ -239,14 +239,14 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                       {account.name || account.email}
                       {account.id === me.id && (
                         <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-ink-300">
-                          You
+                          {at("admins.you")}
                         </span>
                       )}
                     </p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-500">
                       <span>{account.email}</span>
                       <span className="capitalize text-gold-400">· {account.role}</span>
-                      {account.lastSeen && <span>· last seen {formatDate(account.lastSeen, "en")}</span>}
+                      {account.lastSeen && <span>· {at("admins.lastSeen")} {formatDate(account.lastSeen, "en")}</span>}
                     </p>
                   </div>
 
@@ -262,7 +262,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                           password: "",
                         })
                       }
-                      aria-label={`Edit ${account.email}`}
+                      aria-label={`${at("common.edit")} ${account.email}`}
                       className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-ink-300 transition hover:border-gold-500/50 hover:text-gold-300"
                     >
                       <Pencil className="h-4 w-4" />
@@ -271,7 +271,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                       <button
                         type="button"
                         onClick={() => setConfirmId(account.id)}
-                        aria-label={`Remove ${account.email}`}
+                        aria-label={`${at("members.remove")} ${account.email}`}
                         className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-ink-300 transition hover:border-red-500/50 hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -292,9 +292,9 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
             <KeyRound className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="font-display text-base font-bold">Change your password</h2>
+            <h2 className="font-display text-base font-bold">{at("admins.changePassword")}</h2>
             <p className="text-xs text-ink-400">
-              Signs every other device out once the new password is saved.
+              {at("admins.changePasswordHint")}
             </p>
           </div>
         </div>
@@ -302,7 +302,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
         <form onSubmit={changePassword} className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={LABEL} htmlFor="current-password">
-              Current password
+              {at("admins.currentPassword")}
             </label>
             <input
               id="current-password"
@@ -316,7 +316,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
           </div>
           <div>
             <label className={LABEL} htmlFor="new-password">
-              New password
+              {at("admins.newPassword")}
             </label>
             <input
               id="new-password"
@@ -327,7 +327,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
               value={nextPassword}
               onChange={(e) => setNextPassword(e.target.value)}
               className={FIELD}
-              placeholder="At least 8 characters"
+              placeholder={at("admins.atLeast8")}
             />
           </div>
           <div className="sm:col-span-2">
@@ -337,7 +337,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
               className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-5 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
             >
               {changingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
-              {changingPassword ? "Saving…" : "Change password"}
+              {changingPassword ? at("common.saving") : at("admins.changePassword")}
             </button>
           </div>
         </form>
@@ -365,9 +365,9 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
               <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-red-500/12 text-red-400">
                 <Trash2 className="h-5 w-5" />
               </span>
-              <h2 className="font-display text-lg font-bold">Remove this administrator?</h2>
+              <h2 className="font-display text-lg font-bold">{at("admins.removeTitle")}</h2>
               <p className="mt-2 text-sm text-ink-400">
-                They will lose access to the dashboard immediately.
+                {at("admins.removeText")}
               </p>
               <div className="mt-6 flex gap-3">
                 <button
@@ -375,7 +375,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                   onClick={() => setConfirmId(null)}
                   className="flex-1 rounded-xl border border-white/12 px-4 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
                 >
-                  Cancel
+                  {at("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -383,7 +383,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                   disabled={busy}
                   className="flex-1 rounded-xl bg-red-500/90 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-500 disabled:opacity-60"
                 >
-                  {busy ? "Removing…" : "Remove"}
+                  {busy ? at("members.removing") : at("members.remove")}
                 </button>
               </div>
             </motion.div>
@@ -411,7 +411,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
             >
               <div className="mb-6 flex items-center justify-between gap-4">
                 <h2 className="font-display text-xl font-extrabold">
-                  {draft.id ? "Edit administrator" : "New administrator"}
+                  {draft.id ? at("admins.editAdmin") : at("admins.newAdmin")}
                 </h2>
                 <button
                   type="button"
@@ -426,27 +426,26 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
               <div className="space-y-4">
                 <div>
                   <label className={LABEL} htmlFor="a-email">
-                    Email
+                    {at("members.email")}
                   </label>
                   <input
                     id="a-email"
                     type="email"
                     required
-                    disabled={Boolean(draft.id)}
                     value={draft.email}
                     onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-                    className={cn(FIELD, draft.id && "opacity-60")}
+                    className={FIELD}
                   />
-                  {draft.id && (
-                    <p className="mt-1 text-[0.7rem] text-ink-500">
-                      An account&rsquo;s email cannot be changed.
+                  {draft.id === me.id && (
+                    <p className="mt-1 text-[0.7rem] text-amber-400">
+                      {at("admins.emailWarning")}
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className={LABEL} htmlFor="a-name">
-                    Display name
+                    {at("admins.displayName")}
                   </label>
                   <input
                     id="a-name"
@@ -458,7 +457,7 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
 
                 <div>
                   <label className={LABEL} htmlFor="a-role">
-                    Role
+                    {at("admins.role")}
                   </label>
                   <select
                     id="a-role"
@@ -467,17 +466,17 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                     className={FIELD}
                   >
                     <option value="editor" className="bg-ink-900">
-                      Editor — manages content only
+                      {at("admins.roleEditor")}
                     </option>
                     <option value="owner" className="bg-ink-900">
-                      Owner — full access, including accounts
+                      {at("admins.roleOwner")}
                     </option>
                   </select>
                 </div>
 
                 <div>
                   <label className={LABEL} htmlFor="a-password">
-                    {draft.id ? "New password (leave blank to keep)" : "Password"}
+                    {draft.id ? at("admins.passwordKeep") : at("admins.password")}
                   </label>
                   <input
                     id="a-password"
@@ -488,8 +487,15 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                     value={draft.password}
                     onChange={(e) => setDraft({ ...draft, password: e.target.value })}
                     className={FIELD}
-                    placeholder="At least 8 characters"
+                    placeholder={at("admins.atLeast8")}
                   />
+                  {draft.id && (
+                    <p className="mt-1 text-[0.7rem] text-ink-500">
+                      {draft.id === me.id
+                        ? at("admins.selfPasswordHint")
+                        : at("admins.otherPasswordHint")}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -500,14 +506,14 @@ export function AdminsManager({ me }: { me: SiteAdmin }) {
                   className="inline-flex items-center gap-2 rounded-xl bg-gold-gradient px-6 py-2.5 text-sm font-bold text-ink-900 shadow-gold transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {busy ? "Saving…" : "Save"}
+                  {busy ? at("common.saving") : at("common.save")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDraft(null)}
                   className="rounded-xl border border-white/12 px-5 py-2.5 text-sm font-semibold text-ink-300 transition hover:bg-white/6"
                 >
-                  Cancel
+                  {at("common.cancel")}
                 </button>
               </div>
             </motion.form>

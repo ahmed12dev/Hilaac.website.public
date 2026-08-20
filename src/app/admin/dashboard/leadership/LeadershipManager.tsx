@@ -5,14 +5,14 @@ import type { LeaderRow } from "@/lib/server/collections";
 import { CollectionManager, PublishedTag, type FieldDef } from "../CollectionManager";
 
 const FIELDS: FieldDef[] = [
-  { key: "name", label: "Full name", span: 6 },
-  { key: "sortOrder", label: "Display order", type: "number", span: 6 },
-  { key: "positionSo", label: "Position — Somali", span: 6 },
-  { key: "positionEn", label: "Position — English", span: 6 },
-  { key: "bioSo", label: "Biography — Somali", type: "textarea", rows: 5, span: 6 },
-  { key: "bioEn", label: "Biography — English", type: "textarea", rows: 5, span: 6 },
-  { key: "photo", label: "Photo", type: "image", span: 12, folder: "leadership" },
-  { key: "published", label: "Show on the website", type: "checkbox" },
+  { key: "name", label: "Full name", labelSo: "Magaca oo dhan", span: 6 },
+  { key: "sortOrder", label: "Display order", labelSo: "Kala horreynta", type: "number", span: 6 },
+  { key: "positionSo", label: "Position — Somali", labelSo: "Jagada — Soomaali", span: 6 },
+  { key: "positionEn", label: "Position — English", labelSo: "Jagada — Ingiriisi", span: 6 },
+  { key: "bioSo", label: "Biography — Somali", labelSo: "Taariikh nololeed — Soomaali", type: "textarea", rows: 5, span: 6 },
+  { key: "bioEn", label: "Biography — English", labelSo: "Taariikh nololeed — Ingiriisi", type: "textarea", rows: 5, span: 6 },
+  { key: "photo", label: "Photo", labelSo: "Sawirka", type: "image", span: 12, folder: "leadership" },
+  { key: "published", label: "Show on the website", labelSo: "Ka muuji websaydka", type: "checkbox" },
 ];
 
 const EMPTY: Partial<LeaderRow> = {
@@ -25,6 +25,7 @@ export function LeadershipManager({ initialItems }: { initialItems: LeaderRow[] 
     <CollectionManager<LeaderRow>
       collection="leadership"
       title="Leadership"
+      titleSo="Hoggaanka"
       icon={UsersRound}
       initialItems={initialItems}
       fields={FIELDS}

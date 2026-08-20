@@ -5,13 +5,13 @@ import type { GalleryRow } from "@/lib/server/collections";
 import { CollectionManager, PublishedTag, type FieldDef } from "../CollectionManager";
 
 const FIELDS: FieldDef[] = [
-  { key: "src", label: "Image", type: "image", span: 12, folder: "gallery" },
-  { key: "type", label: "Type", type: "select", options: ["photo", "video"], span: 4 },
-  { key: "album", label: "Album", span: 4, placeholder: "Olole, Bulsho…" },
-  { key: "sortOrder", label: "Display order", type: "number", span: 4 },
-  { key: "titleSo", label: "Caption — Somali", span: 6 },
-  { key: "titleEn", label: "Caption — English", span: 6 },
-  { key: "published", label: "Show on the website", type: "checkbox" },
+  { key: "src", label: "Image", labelSo: "Sawirka", type: "image", span: 12, folder: "gallery" },
+  { key: "type", label: "Type", labelSo: "Nooca", type: "select", options: ["photo", "video"], span: 4 },
+  { key: "album", label: "Album", labelSo: "Albamka", span: 4, placeholder: "Olole, Bulsho…" },
+  { key: "sortOrder", label: "Display order", labelSo: "Kala horreynta", type: "number", span: 4 },
+  { key: "titleSo", label: "Caption — Somali", labelSo: "Faallo — Soomaali", span: 6 },
+  { key: "titleEn", label: "Caption — English", labelSo: "Faallo — Ingiriisi", span: 6 },
+  { key: "published", label: "Show on the website", labelSo: "Ka muuji websaydka", type: "checkbox" },
 ];
 
 const EMPTY: Partial<GalleryRow> = {
@@ -24,6 +24,7 @@ export function GalleryManager({ initialItems }: { initialItems: GalleryRow[] })
     <CollectionManager<GalleryRow>
       collection="gallery"
       title="Gallery"
+      titleSo="Sawirada"
       icon={ImageIcon}
       initialItems={initialItems}
       fields={FIELDS}

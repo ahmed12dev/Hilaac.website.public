@@ -6,17 +6,17 @@ import { formatDate } from "@/lib/utils";
 import { CollectionManager, PublishedTag, type FieldDef } from "../CollectionManager";
 
 const FIELDS: FieldDef[] = [
-  { key: "titleSo", label: "Title — Somali", span: 6 },
-  { key: "titleEn", label: "Title — English", span: 6 },
-  { key: "descriptionSo", label: "Description — Somali", type: "textarea", span: 6 },
-  { key: "descriptionEn", label: "Description — English", type: "textarea", span: 6 },
-  { key: "startsAt", label: "Starts", type: "datetime-local", span: 4 },
-  { key: "endsAt", label: "Ends", type: "datetime-local", span: 4 },
-  { key: "capacity", label: "Capacity", type: "number", span: 4 },
-  { key: "locationSo", label: "Location — Somali", span: 6 },
-  { key: "locationEn", label: "Location — English", span: 6 },
-  { key: "cover", label: "Cover image", type: "image", span: 12, folder: "events" },
-  { key: "published", label: "Show on the website", type: "checkbox" },
+  { key: "titleSo", label: "Title — Somali", labelSo: "Cinwaanka — Soomaali", span: 6 },
+  { key: "titleEn", label: "Title — English", labelSo: "Cinwaanka — Ingiriisi", span: 6 },
+  { key: "descriptionSo", label: "Description — Somali", labelSo: "Sharaxaad — Soomaali", type: "textarea", span: 6 },
+  { key: "descriptionEn", label: "Description — English", labelSo: "Sharaxaad — Ingiriisi", type: "textarea", span: 6 },
+  { key: "startsAt", label: "Starts", labelSo: "Bilaabmaya", type: "datetime-local", span: 4 },
+  { key: "endsAt", label: "Ends", labelSo: "Dhammaanaya", type: "datetime-local", span: 4 },
+  { key: "capacity", label: "Capacity", labelSo: "Tirada qaadi karta", type: "number", span: 4 },
+  { key: "locationSo", label: "Location — Somali", labelSo: "Goobta — Soomaali", span: 6 },
+  { key: "locationEn", label: "Location — English", labelSo: "Goobta — Ingiriisi", span: 6 },
+  { key: "cover", label: "Cover image", labelSo: "Sawirka hore", type: "image", span: 12, folder: "events" },
+  { key: "published", label: "Show on the website", labelSo: "Ka muuji websaydka", type: "checkbox" },
 ];
 
 const EMPTY: Partial<EventRow> = {
@@ -31,6 +31,7 @@ export function EventsManager({ initialItems }: { initialItems: EventRow[] }) {
     <CollectionManager<EventRow>
       collection="events"
       title="Events"
+      titleSo="Munaasabadaha"
       icon={CalendarDays}
       initialItems={initialItems}
       fields={FIELDS}

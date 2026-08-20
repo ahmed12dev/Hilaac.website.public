@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   Activity,
   ArrowRight,
+  BookOpen,
   CalendarDays,
   CheckCircle2,
   FolderKanban,
@@ -25,6 +26,7 @@ import type { ActivityRow } from "@/lib/server/activity";
 import type { ContentCounts } from "@/lib/server/content";
 import type { LiveTotals } from "@/lib/types";
 import { formatDate, formatNumber } from "@/lib/utils";
+import { useAdminText } from "./useAdminText";
 
 function Card({
   icon: Icon,
@@ -93,7 +95,8 @@ export function Overview({
   /** Members in this website's own registry. */
   memberCount?: number | null;
 }) {
-  const firstName = adminName.split(/[\s@]/)[0] || "there";
+  const { at } = useAdminText();
+  const firstName = adminName.split(/[\s@]/)[0] || "";
   const n = (v: number | null | undefined) =>
     typeof v === "number" ? formatNumber(v, "en") : "—";
   const live = Boolean(totals);
@@ -123,15 +126,15 @@ export function Overview({
                     : "h-1.5 w-1.5 rounded-full bg-amber-400"
                 }
               />
-              {live ? "Registration system connected" : "Registration system offline"}
+              {live ? at("overview.connected") : at("overview.offline")}
             </span>
-            <span className="text-xs text-ink-500">Xisbiga Hilaac Console</span>
+            <span className="text-xs text-ink-500">{at("overview.console")}</span>
           </div>
           <h1 className="font-display text-2xl font-extrabold sm:text-3xl">
-            Welcome back, {firstName}
+            {at("overview.welcome")}{firstName ? `, ${firstName}` : ""}
           </h1>
           <p className="mt-1 text-sm text-ink-400">
-            Real-time management dashboard for content, party members, announcements, and analytics.
+            {at("overview.subtitle")}
           </p>
         </div>
 
@@ -141,7 +144,7 @@ export function Overview({
           className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-ink-200 transition-colors hover:bg-white/10 hover:text-white"
         >
           <Radio className="h-3.5 w-3.5 text-gold-400" />
-          View Live Website
+          {at("overview.viewLive")}
         </Link>
       </motion.header>
 
@@ -150,18 +153,18 @@ export function Overview({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-              Party Membership & Reach
+              {at("overview.membership")}
             </h2>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/20 bg-gold-500/5 px-2.5 py-0.5 text-[0.62rem] font-bold uppercase tracking-wide text-gold-400">
               <Sparkles className="h-3 w-3" />
-              {live ? "From the registration system" : "Awaiting the registration system"}
+              {live ? at("overview.fromSystem") : at("overview.awaiting")}
             </span>
           </div>
           <Link
             href="/admin/dashboard/members"
             className="text-xs font-semibold text-gold-400 hover:text-gold-300 transition-colors"
           >
-            Open Registry →
+            {at("overview.openRegistry")}
           </Link>
         </div>
 
@@ -170,11 +173,11 @@ export function Overview({
             index={0}
             icon={Users}
             value={n(totals?.totalMembers)}
-            label="Total Members"
+            label={at("overview.totalMembers")}
             hint={
               memberCount === null
-                ? "Read from the registration system"
-                : `${formatNumber(memberCount, "en")} in your own registry`
+                ? at("overview.readFromSystem")
+                : `${formatNumber(memberCount, "en")} ${at("overview.inOwnRegistry")}`
             }
             tone="gold"
             href="/admin/dashboard/members"
@@ -183,8 +186,8 @@ export function Overview({
             index={1}
             icon={Activity}
             value={n(totals?.totalRegions)}
-            label="Active Regions"
-            hint="Nationwide presence"
+            label={at("overview.activeRegions")}
+            hint={at("overview.nationwide")}
             tone="emerald"
             href="/admin/dashboard/members"
           />
@@ -192,8 +195,8 @@ export function Overview({
             index={2}
             icon={CheckCircle2}
             value={n(totals?.totalDistricts)}
-            label="Covered Districts"
-            hint="Local branches established"
+            label={at("overview.coveredDistricts")}
+            hint={at("overview.localBranches")}
             tone="sky"
             href="/admin/dashboard/members"
           />
@@ -203,7 +206,7 @@ export function Overview({
       {/* Website Content Management */}
       <section>
         <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-          Website Content & Media
+          {at("overview.contentMedia")}
         </h2>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -211,73 +214,81 @@ export function Overview({
             index={0}
             icon={Newspaper}
             value={n(counts?.news)}
-            label="News articles"
-            hint={counts ? `${counts.news_published} published` : "Manage articles"}
+            label={at("overview.newsArticles")}
+            hint={counts ? `${counts.news_published} ${at("overview.published")}` : at("overview.manageArticles")}
             href="/admin/dashboard/news"
           />
           <Card
             index={1}
             icon={FolderKanban}
             value={n(counts?.projects)}
-            label="Projects & Initiatives"
-            hint="Party manifesto tracks"
+            label={at("overview.projects")}
+            hint={at("overview.manifesto")}
             href="/admin/dashboard/projects"
           />
           <Card
             index={2}
             icon={CalendarDays}
             value={n(counts?.events)}
-            label="Upcoming Events"
-            hint="Town halls & rallies"
+            label={at("overview.events")}
+            hint={at("overview.townHalls")}
             href="/admin/dashboard/events"
           />
           <Card
             index={3}
             icon={UsersRound}
             value={n(counts?.leaders)}
-            label="Leadership profiles"
-            hint="Party committee & chair"
+            label={at("overview.leaderProfiles")}
+            hint={at("overview.committee")}
             href="/admin/dashboard/leadership"
           />
           <Card
             index={4}
             icon={ImageIcon}
             value={n(counts?.gallery)}
-            label="Photo Gallery"
-            hint="Press & event photos"
+            label={at("overview.photoGallery")}
+            hint={at("overview.pressPhotos")}
             href="/admin/dashboard/gallery"
           />
           <Card
             index={5}
             icon={MessageSquare}
             value={n(counts?.unread_messages)}
-            label="Unread messages"
-            hint={counts ? `${counts.messages} received in total` : "Contact submissions"}
+            label={at("overview.unreadMessages")}
+            hint={counts ? `${counts.messages} ${at("overview.receivedTotal")}` : at("overview.contactSubmissions")}
             href="/admin/dashboard/messages"
           />
           <Card
             index={6}
             icon={Quote}
             value={n(counts?.testimonials)}
-            label="Testimonials"
-            hint="Quotes shown on the homepage"
+            label={at("overview.testimonials")}
+            hint={at("overview.homepageQuotes")}
             href="/admin/dashboard/testimonials"
           />
           <Card
             index={7}
             icon={HardDrive}
             value={n(counts?.media)}
-            label="Media library"
-            hint="Uploaded images"
+            label={at("overview.mediaLibrary")}
+            hint={at("overview.uploadedImages")}
             href="/admin/dashboard/media"
           />
           <Card
             index={8}
             icon={Mail}
             value={n(counts?.subscribers)}
-            label="Newsletter subscribers"
-            hint="Collected from the public site"
+            label={at("overview.subscribers")}
+            hint={at("overview.collectedFromSite")}
             href="/admin/dashboard/subscribers"
+          />
+          <Card
+            index={9}
+            icon={BookOpen}
+            value={n(counts?.constitution)}
+            label={at("overview.constitution")}
+            hint={at("overview.constitutionHint")}
+            href="/admin/dashboard/constitution"
           />
         </div>
       </section>
@@ -285,7 +296,7 @@ export function Overview({
       {/* Quick actions */}
       <section>
         <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-          Quick Control Hub
+          {at("overview.quickHub")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link
@@ -294,13 +305,11 @@ export function Overview({
           >
             <div>
               <Users className="h-6 w-6 text-gold-400 mb-3" />
-              <span className="block font-display font-bold text-white">Members Registry</span>
-              <span className="block text-xs text-ink-400 mt-1">
-                Filter by Somali region & export roster to CSV
-              </span>
+              <span className="block font-display font-bold text-white">{at("overview.membersRegistry")}</span>
+              <span className="block text-xs text-ink-400 mt-1">{at("overview.registryHint")}</span>
             </div>
             <div className="mt-4 flex items-center gap-1 text-xs font-bold text-gold-400">
-              Open Registry <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              {at("overview.openRegistry")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
 
@@ -310,13 +319,11 @@ export function Overview({
           >
             <div>
               <Settings className="h-6 w-6 text-sky-400 mb-3" />
-              <span className="block font-display font-bold text-white">Site Settings</span>
-              <span className="block text-xs text-ink-400 mt-1">
-                Update party info, hotline, and live banner
-              </span>
+              <span className="block font-display font-bold text-white">{at("overview.siteSettings")}</span>
+              <span className="block text-xs text-ink-400 mt-1">{at("overview.settingsHint")}</span>
             </div>
             <div className="mt-4 flex items-center gap-1 text-xs font-bold text-sky-400">
-              Edit Settings <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              {at("overview.editSettings")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
 
@@ -326,13 +333,11 @@ export function Overview({
           >
             <div>
               <HardDrive className="mb-3 h-6 w-6 text-violet-400" />
-              <span className="block font-display font-bold text-white">Media Library</span>
-              <span className="mt-1 block text-xs text-ink-400">
-                Upload photos once, then use them anywhere on the site
-              </span>
+              <span className="block font-display font-bold text-white">{at("overview.mediaLibrary")}</span>
+              <span className="mt-1 block text-xs text-ink-400">{at("overview.mediaHint")}</span>
             </div>
             <div className="mt-4 flex items-center gap-1 text-xs font-bold text-violet-400">
-              Open Library <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              {at("overview.openLibrary")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
 
@@ -342,13 +347,11 @@ export function Overview({
           >
             <div>
               <Newspaper className="h-6 w-6 text-emerald-400 mb-3" />
-              <span className="block font-display font-bold text-white">Publish Article</span>
-              <span className="block text-xs text-ink-400 mt-1">
-                Post bilingual news in Somali and English
-              </span>
+              <span className="block font-display font-bold text-white">{at("overview.publishArticle")}</span>
+              <span className="block text-xs text-ink-400 mt-1">{at("overview.publishHint")}</span>
             </div>
             <div className="mt-4 flex items-center gap-1 text-xs font-bold text-emerald-400">
-              Manage News <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              {at("overview.manageNews")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </div>
           </Link>
         </div>
@@ -358,20 +361,20 @@ export function Overview({
       <section>
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-ink-500">
-            Recent activity
+            {at("overview.recentActivity")}
           </h2>
           <Link
             href="/admin/dashboard/analytics"
             className="text-xs font-semibold text-gold-400 transition-colors hover:text-gold-300"
           >
-            Open analytics →
+            {at("overview.openAnalytics")}
           </Link>
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           {activity.length === 0 ? (
             <p className="py-6 text-center text-xs text-ink-500">
-              Nothing yet. Every change you make from this dashboard is recorded here.
+              {at("overview.noActivity")}
             </p>
           ) : (
             <ul className="divide-y divide-white/6">
