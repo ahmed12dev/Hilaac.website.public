@@ -10,6 +10,14 @@ import { AboutTopicReader } from "./AboutTopicReader";
 export const revalidate = 300;
 
 /**
+ * There are exactly three topics, so anything else is a real 404 rather than a
+ * page to render. Without this, an unknown segment renders notFound() through
+ * the ISR path and is served as HTTP 200 with not-found content — a soft 404
+ * that search engines will happily index.
+ */
+export const dynamicParams = false;
+
+/**
  * The three About passages, each on its own page.
  *
  * `short` is what the card on /about shows; `full` is the longer text an
