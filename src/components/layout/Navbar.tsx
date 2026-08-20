@@ -5,9 +5,7 @@ import {
   Facebook,
   Instagram,
   Linkedin,
-  Mail,
   Menu,
-  Phone,
   Search,
   X,
   Youtube,
@@ -45,7 +43,7 @@ const LINKS: { href: string; key: TranslationKey }[] = [
 ];
 
 export function Navbar({ settings }: { settings?: SiteSettings }) {
-  const { tr } = useLanguage();
+  const { tr, tx } = useLanguage();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -83,8 +81,6 @@ export function Navbar({ settings }: { settings?: SiteSettings }) {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  const contactEmail = settings?.contact?.email ?? "";
-  const contactPhone = settings?.contact?.phone ?? "";
   const socialEntries = Object.entries(settings?.socials ?? {}).filter(
     ([key, url]) => Boolean(url) && key in SOCIAL_ICONS,
   ) as [keyof typeof SOCIAL_ICONS, string][];
@@ -120,26 +116,9 @@ export function Navbar({ settings }: { settings?: SiteSettings }) {
           aria-hidden={scrolled}
         >
           <div className="container-page flex h-11 items-center justify-between gap-6">
-            <div className="flex items-center gap-6 text-[0.72rem] font-medium text-white/60">
-              {contactEmail && (
-                <a
-                  href={`mailto:${contactEmail}`}
-                  className="inline-flex items-center gap-1.5 transition-colors hover:text-gold-300"
-                >
-                  <Mail className="h-3.5 w-3.5" aria-hidden />
-                  {contactEmail}
-                </a>
-              )}
-              {contactPhone && (
-                <a
-                  href={`tel:${contactPhone.replace(/[^\d+]/g, "")}`}
-                  className="inline-flex items-center gap-1.5 transition-colors hover:text-gold-300"
-                >
-                  <Phone className="h-3.5 w-3.5" aria-hidden />
-                  {contactPhone}
-                </a>
-              )}
-            </div>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-white/45">
+              {tx(settings?.tagline ?? "")}
+            </p>
 
             <div className="flex items-center gap-3">
               {socialEntries.length > 0 && (
