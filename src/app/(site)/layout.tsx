@@ -23,7 +23,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         />
       )}
       <ScrollProgress />
-      <Navbar />
+      <Navbar settings={settings} />
       <main id="main">{children}</main>
       <Footer settings={settings} />
     </>

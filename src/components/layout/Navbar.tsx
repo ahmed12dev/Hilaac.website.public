@@ -1,7 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Search, X } from "lucide-react";
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  Mail,
+  Menu,
+  Phone,
+  Search,
+  X,
+  Youtube,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,6 +23,14 @@ import { cn, joinUrl } from "@/lib/utils";
 import { LanguageToggle } from "./LanguageToggle";
 import { SearchDialog } from "./SearchDialog";
 import { ThemeToggle } from "./ThemeToggle";
+import type { SiteSettings } from "@/lib/types";
+
+const SOCIAL_ICONS = {
+  facebook: Facebook,
+  instagram: Instagram,
+  youtube: Youtube,
+  linkedin: Linkedin,
+} as const;
 
 const LINKS: { href: string; key: TranslationKey }[] = [
   { href: "/", key: "nav.home" },
@@ -26,7 +44,7 @@ const LINKS: { href: string; key: TranslationKey }[] = [
   { href: "/contact", key: "nav.contact" },
 ];
 
-export function Navbar() {
+export function Navbar({ settings }: { settings?: SiteSettings }) {
   const { tr } = useLanguage();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -65,6 +83,12 @@ export function Navbar() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const contactEmail = settings?.contact?.email ?? "";
+  const contactPhone = settings?.contact?.phone ?? "";
+  const socialEntries = Object.entries(settings?.socials ?? {}).filter(
+    ([key, url]) => Boolean(url) && key in SOCIAL_ICONS,
+  ) as [keyof typeof SOCIAL_ICONS, string][];
+
   return (
     <>
       <a
@@ -78,11 +102,81 @@ export function Navbar() {
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-all duration-400",
           scrolled
-            ? "border-b border-ink-200/60 bg-white/85 py-2 shadow-[0_10px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-ink-800/70 dark:bg-ink-950/85"
-            : "border-b border-transparent bg-transparent py-4",
+            ? "border-b border-ink-200/60 bg-white/85 shadow-[0_10px_40px_-24px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-ink-800/70 dark:bg-ink-950/85"
+            : "border-b border-transparent bg-transparent",
         )}
       >
-        <div className="container-page flex items-center justify-between gap-4">
+        {/* Utility strip. Carries the details that were crowding the main row —
+            contact, socials, language and theme — and folds away on scroll so
+            the header condenses to a single compact bar. Always sits over a
+            dark hero or page header, so its colours are fixed light-on-dark. */}
+        <div
+          className={cn(
+            "hidden overflow-hidden transition-all duration-400 lg:block",
+            scrolled
+              ? "max-h-0 border-b-0 opacity-0"
+              : "max-h-14 border-b border-white/10 opacity-100",
+          )}
+          aria-hidden={scrolled}
+        >
+          <div className="container-page flex h-11 items-center justify-between gap-6">
+            <div className="flex items-center gap-6 text-[0.72rem] font-medium text-white/60">
+              {contactEmail && (
+                <a
+                  href={`mailto:${contactEmail}`}
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-gold-300"
+                >
+                  <Mail className="h-3.5 w-3.5" aria-hidden />
+                  {contactEmail}
+                </a>
+              )}
+              {contactPhone && (
+                <a
+                  href={`tel:${contactPhone.replace(/[^\d+]/g, "")}`}
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-gold-300"
+                >
+                  <Phone className="h-3.5 w-3.5" aria-hidden />
+                  {contactPhone}
+                </a>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {socialEntries.length > 0 && (
+                <>
+                  <div className="flex items-center gap-1">
+                    {socialEntries.map(([key, url]) => {
+                      const Icon = SOCIAL_ICONS[key];
+                      return (
+                        <a
+                          key={key}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          aria-label={key}
+                          className="grid h-7 w-7 place-items-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-gold-300"
+                        >
+                          <Icon className="h-[15px] w-[15px]" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                  <span className="h-4 w-px bg-white/15" aria-hidden />
+                </>
+              )}
+              <LanguageToggle onDark />
+              <ThemeToggle onDark />
+            </div>
+          </div>
+        </div>
+
+        {/* Main bar */}
+        <div
+          className={cn(
+            "container-page flex items-center justify-between gap-6 transition-all duration-400",
+            scrolled ? "py-2" : "py-3.5",
+          )}
+        >
           {/* Brand */}
           <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="Xisbiga Hilaac">
             <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-full ring-2 ring-gold-500/60 transition-transform duration-300 group-hover:scale-105 sm:h-12 sm:w-12">
@@ -106,13 +200,13 @@ export function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary">
             {LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative rounded-full px-3.5 py-2 text-[0.9rem] font-semibold transition-colors",
+                  "relative rounded-full px-3 py-2 text-[0.875rem] font-semibold transition-colors",
                   isActive(link.href)
                     ? "text-gold-600 dark:text-gold-400"
                     : "text-ink-600 hover:text-gold-600 dark:text-ink-300 dark:hover:text-gold-400",
@@ -141,8 +235,7 @@ export function Navbar() {
               <Search className="h-[18px] w-[18px]" />
             </button>
 
-            <LanguageToggle className="hidden sm:flex" />
-            <ThemeToggle />
+            <ThemeToggle className="lg:hidden" />
 
             <ButtonLink href={joinUrl()} size="sm" className="hidden lg:inline-flex">
               {tr("cta.join")}
@@ -224,7 +317,10 @@ export function Navbar() {
               </nav>
 
               <div className="space-y-4 border-t border-ink-200/70 p-5 dark:border-ink-800">
-                <LanguageToggle className="w-fit" />
+                <div className="flex items-center gap-3">
+                  <LanguageToggle className="w-fit" />
+                  <ThemeToggle />
+                </div>
                 <ButtonLink href={joinUrl()} size="md" className="w-full">
                   {tr("cta.join")}
                 </ButtonLink>

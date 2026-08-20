@@ -6,7 +6,14 @@ import { useLanguage } from "@/lib/i18n/provider";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({
+  className,
+  onDark = false,
+}: {
+  className?: string;
+  /** Subdued styling for the dark utility strip at the top of the header. */
+  onDark?: boolean;
+}) {
   const { theme, toggleTheme, mounted } = useTheme();
   const { tr } = useLanguage();
   const isDark = theme === "dark";
@@ -18,9 +25,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={`${tr("common.theme")}: ${isDark ? "dark" : "light"}`}
       title={tr("common.theme")}
       className={cn(
-        "relative grid h-10 w-10 place-items-center rounded-full border border-ink-200/70 dark:border-ink-700",
-        "bg-white/70 dark:bg-ink-800/70 backdrop-blur transition-all",
-        "hover:border-gold-500 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-gold",
+        "relative grid place-items-center rounded-full backdrop-blur transition-all",
+        onDark
+          ? "h-8 w-8 border border-white/15 bg-white/8 text-white/70 hover:border-gold-400/60 hover:text-gold-300"
+          : cn(
+              "h-10 w-10 border border-ink-200/70 bg-white/70 dark:border-ink-700 dark:bg-ink-800/70",
+              "hover:border-gold-500 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-gold",
+            ),
         className,
       )}
     >
@@ -33,7 +44,11 @@ export function ThemeToggle({ className }: { className?: string }) {
           transition={{ duration: 0.24 }}
           className="grid place-items-center"
         >
-          {isDark ? <Moon className="h-[18px] w-[18px]" /> : <Sun className="h-[18px] w-[18px]" />}
+          {isDark ? (
+            <Moon className={onDark ? "h-4 w-4" : "h-[18px] w-[18px]"} />
+          ) : (
+            <Sun className={onDark ? "h-4 w-4" : "h-[18px] w-[18px]"} />
+          )}
         </motion.span>
       </AnimatePresence>
     </button>
