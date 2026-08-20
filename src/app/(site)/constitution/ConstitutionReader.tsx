@@ -10,7 +10,8 @@ import {
   ScrollText,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BookProse } from "@/components/ui/BookProse";
 import { useLanguage } from "@/lib/i18n/provider";
 import type { Localized } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -20,37 +21,6 @@ export interface ConstitutionChapter {
   chapterNo: string;
   title: Localized;
   body: Localized;
-}
-
-/**
- * Renders a chapter's text the way it was typed.
- *
- * A blank line starts a new paragraph; a single newline inside a paragraph
- * becomes a line break, which is what numbered clauses need — an editor typing
- * "1." and "2." on their own lines gets them on their own lines.
- */
-function ChapterBody({ text }: { text: string }) {
-  const paragraphs = useMemo(
-    () => text.replace(/\r\n/g, "\n").split(/\n\s*\n/).filter((p) => p.trim()),
-    [text],
-  );
-
-  if (!paragraphs.length) return null;
-
-  return (
-    <div className="constitution-prose">
-      {paragraphs.map((para, i) => (
-        <p key={i}>
-          {para.split("\n").map((line, j, all) => (
-            <span key={j}>
-              {line}
-              {j < all.length - 1 && <br />}
-            </span>
-          ))}
-        </p>
-      ))}
-    </div>
-  );
 }
 
 export function ConstitutionReader({ chapters }: { chapters: ConstitutionChapter[] }) {
@@ -146,7 +116,7 @@ export function ConstitutionReader({ chapters }: { chapters: ConstitutionChapter
   );
 
   return (
-    <section className="constitution-paper py-14 lg:py-20">
+    <section className="book-paper py-14 lg:py-20">
       <div className="container-page">
         <div className="lg:grid lg:grid-cols-[17rem_1fr] lg:gap-12">
           {/* Contents — a sidebar on desktop */}
@@ -229,7 +199,7 @@ export function ConstitutionReader({ chapters }: { chapters: ConstitutionChapter
                         title={tx(chapter.title)}
                         label={tr("constitution.chapter")}
                       />
-                      <ChapterBody text={tx(chapter.body)} />
+                      <BookProse text={tx(chapter.body)} dropCap />
                     </article>
                   ))}
                 </div>
@@ -248,7 +218,7 @@ export function ConstitutionReader({ chapters }: { chapters: ConstitutionChapter
                       title={tx(active.title)}
                       label={tr("constitution.chapter")}
                     />
-                    <ChapterBody text={tx(active.body)} />
+                    <BookProse text={tx(active.body)} dropCap />
                   </motion.article>
                 </AnimatePresence>
               )}

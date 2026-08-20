@@ -265,36 +265,37 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Constitution reader
-   Book typography for /constitution. Scoped to the reader so it
-   cannot affect anything else on the site.
+   Book typography
+   Used by the constitution reader and the About page's history,
+   vision and mission. Scoped to these blocks so it cannot affect
+   anything else on the site.
    ───────────────────────────────────────────────────────────── */
 
-.constitution-paper {
+.book-paper {
   background: #fbf7ef;
 }
-.dark .constitution-paper {
+.dark .book-paper {
   background: #0f1420;
 }
 
-.constitution-prose {
+.book-prose {
   font-family: Georgia, "Times New Roman", "Noto Serif", serif;
   font-size: 1.075rem;
   line-height: 1.95;
   color: #2b2b2b;
 }
-.dark .constitution-prose {
+.dark .book-prose {
   color: #d8dbe3;
 }
 
-.constitution-prose p {
+.book-prose p {
   margin: 0 0 1.35em;
   text-align: justify;
   hyphens: auto;
 }
 
 /* A dropped capital on the opening paragraph, as a printed charter has. */
-.constitution-prose > p:first-of-type::first-letter {
+.book-prose--drop > p:first-of-type::first-letter {
   float: left;
   font-size: 3.1em;
   line-height: 0.86;
@@ -302,7 +303,7 @@
   font-weight: 700;
   color: #b8942c;
 }
-.dark .constitution-prose > p:first-of-type::first-letter {
+.dark .book-prose--drop > p:first-of-type::first-letter {
   color: #e2b93a;
 }
 
@@ -310,16 +311,16 @@
   .no-print {
     display: none !important;
   }
-  .constitution-paper {
+  .book-paper {
     background: #fff !important;
     padding: 0 !important;
   }
-  .constitution-prose {
+  .book-prose {
     font-size: 11.5pt;
     line-height: 1.6;
     color: #000 !important;
   }
-  .constitution-prose > p:first-of-type::first-letter {
+  .book-prose--drop > p:first-of-type::first-letter {
     color: #000 !important;
   }
 }
