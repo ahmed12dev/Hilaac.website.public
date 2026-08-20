@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
   BookOpen,
   Compass,
   Heart,
@@ -12,7 +13,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { BookProse } from "@/components/ui/BookProse";
+import Link from "next/link";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/ui/Reveal";
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { useLanguage } from "@/lib/i18n/provider";
@@ -42,9 +43,9 @@ export function About({
   const { about } = settings;
 
   const pillars = [
-    { icon: BookOpen, title: tr("about.history"), body: tx(about.history) },
-    { icon: Compass, title: tr("about.vision"), body: tx(about.vision) },
-    { icon: Target, title: tr("about.mission"), body: tx(about.mission) },
+    { icon: BookOpen, title: tr("about.history"), body: tx(about.history), topic: "history" },
+    { icon: Compass, title: tr("about.vision"), body: tx(about.vision), topic: "vision" },
+    { icon: Target, title: tr("about.mission"), body: tx(about.mission), topic: "mission" },
   ];
 
   return (
@@ -58,38 +59,35 @@ export function About({
           />
         )}
 
-        {/* History / Vision / Mission — set as one page of a book, the same
-            way the constitution reads. */}
-        <Reveal>
-          <article className="book-paper mx-auto max-w-3xl rounded-4xl border border-ink-200/70 p-7 shadow-soft dark:border-ink-800 sm:p-12 lg:p-16">
-            {pillars.map(({ icon: Icon, title, body }, index) => (
-              <section
-                key={title}
-                id={`about-${index}`}
-                className={index > 0 ? "mt-14 scroll-mt-28" : "scroll-mt-28"}
+        {/* History / Vision / Mission — a card each, opening its own
+            reading page. The card carries the short version; the full text
+            lives at /about/<topic>. */}
+        <StaggerGroup className="grid gap-6 md:grid-cols-3">
+          {pillars.map(({ icon: Icon, title, body, topic }) => (
+            <StaggerItem key={topic}>
+              <Link
+                href={`/about/${topic}`}
+                className="group relative flex h-full flex-col overflow-hidden rounded-4xl border border-ink-200/70 bg-white p-8 transition-all duration-500 hover:-translate-y-1.5 hover:border-gold-500/40 hover:shadow-gold dark:border-ink-800 dark:bg-ink-900"
               >
-                {/* An ornamental rule separates one passage from the next. */}
-                {index > 0 && (
-                  <div className="mb-12 flex items-center justify-center gap-3" aria-hidden>
-                    <span className="h-px w-16 bg-gradient-to-r from-transparent to-gold-500/50" />
-                    <span className="h-1.5 w-1.5 rotate-45 bg-gold-500/60" />
-                    <span className="h-px w-16 bg-gradient-to-l from-transparent to-gold-500/50" />
-                  </div>
-                )}
-
-                <header className="mb-7 text-center">
-                  <span className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-gold-gradient text-ink-900 shadow-gold">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="font-display text-2xl font-extrabold sm:text-3xl">{title}</h3>
-                  <div className="hairline-gold mx-auto mt-4 h-px w-20" />
-                </header>
-
-                <BookProse text={body} dropCap={index === 0} />
-              </section>
-            ))}
-          </article>
-        </Reveal>
+                <span
+                  className="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-gold-500/10 blur-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+                  aria-hidden
+                />
+                <span className="relative mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-gold-gradient text-ink-900 shadow-gold">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <h3 className="relative mb-3 font-display text-xl font-bold">{title}</h3>
+                <p className="relative line-clamp-5 text-[0.95rem] leading-relaxed text-ink-600 dark:text-ink-400">
+                  {body}
+                </p>
+                <span className="relative mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-gold-700 dark:text-gold-400">
+                  {tr("cta.readMore")}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </Link>
+            </StaggerItem>
+          ))}
+        </StaggerGroup>
 
         {/* Core values */}
         {about.values?.length > 0 && (

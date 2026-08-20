@@ -34,6 +34,8 @@ export const dictionary = {
     "about.mission": "Himilada",
     "about.values": "Qiyamka Aasaasiga ah",
     "about.timeline": "Safarkeenna",
+    "about.readingTitle": "Ku Saabsan Hilaac",
+    "about.backToAbout": "Ku noqo bogga Ku Saabsan",
 
     "leadership.title": "Hoggaanka Xisbiga",
     "leadership.subtitle": "Dadka hoggaaminaya safarkeenna qaran",
@@ -211,6 +213,8 @@ export const dictionary = {
     "about.mission": "Our Mission",
     "about.values": "Core Values",
     "about.timeline": "Our Journey",
+    "about.readingTitle": "About Hilaac",
+    "about.backToAbout": "Back to About",
 
     "leadership.title": "Party Leadership",
     "leadership.subtitle": "The people leading our national journey",

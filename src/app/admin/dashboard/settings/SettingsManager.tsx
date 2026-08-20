@@ -59,6 +59,9 @@ interface SettingsShape {
     history: Bilingual;
     vision: Bilingual;
     mission: Bilingual;
+    historyFull: Bilingual;
+    visionFull: Bilingual;
+    missionFull: Bilingual;
   };
   contact: {
     address: Bilingual;
@@ -115,6 +118,9 @@ function normalise(raw: Partial<SettingsShape> | null): SettingsShape {
       history: raw?.about?.history ?? {},
       vision: raw?.about?.vision ?? {},
       mission: raw?.about?.mission ?? {},
+      historyFull: raw?.about?.historyFull ?? {},
+      visionFull: raw?.about?.visionFull ?? {},
+      missionFull: raw?.about?.missionFull ?? {},
     },
     contact: {
       address: raw?.contact?.address ?? {},
@@ -564,30 +570,71 @@ export function SettingsManager() {
         <section className="space-y-6 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
           <div>
             <h2 className="font-display text-base font-bold">About the party</h2>
-            <p className="text-xs text-ink-400">The text shown on the About page.</p>
+            <p className="text-xs text-ink-400">
+              Each of the three has a short version and a full one. The short version is what
+              the card on the About page shows; the full one is what opens when a visitor
+              clicks it. Leave the full text empty and the card opens showing the short
+              version instead.
+            </p>
+            <p className="mt-2 text-xs text-ink-500">
+              In the full text, leave a blank line between paragraphs — readers see them
+              spaced exactly as you write them.
+            </p>
           </div>
 
-          <Pair
-            label="History"
-            value={s.about.history}
-            onChange={(history) => patch({ about: { ...s.about, history } })}
-            textarea
-            rows={6}
-          />
-          <Pair
-            label="Vision"
-            value={s.about.vision}
-            onChange={(vision) => patch({ about: { ...s.about, vision } })}
-            textarea
-            rows={4}
-          />
-          <Pair
-            label="Mission"
-            value={s.about.mission}
-            onChange={(mission) => patch({ about: { ...s.about, mission } })}
-            textarea
-            rows={4}
-          />
+          <div className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <h3 className="text-sm font-bold">History · Taariikhda</h3>
+            <Pair
+              label="History — short (on the card)"
+              value={s.about.history}
+              onChange={(history) => patch({ about: { ...s.about, history } })}
+              textarea
+              rows={4}
+            />
+            <Pair
+              label="History — full page"
+              value={s.about.historyFull}
+              onChange={(historyFull) => patch({ about: { ...s.about, historyFull } })}
+              textarea
+              rows={12}
+            />
+          </div>
+
+          <div className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <h3 className="text-sm font-bold">Vision · Aragtida</h3>
+            <Pair
+              label="Vision — short (on the card)"
+              value={s.about.vision}
+              onChange={(vision) => patch({ about: { ...s.about, vision } })}
+              textarea
+              rows={4}
+            />
+            <Pair
+              label="Vision — full page"
+              value={s.about.visionFull}
+              onChange={(visionFull) => patch({ about: { ...s.about, visionFull } })}
+              textarea
+              rows={12}
+            />
+          </div>
+
+          <div className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <h3 className="text-sm font-bold">Mission · Himilada</h3>
+            <Pair
+              label="Mission — short (on the card)"
+              value={s.about.mission}
+              onChange={(mission) => patch({ about: { ...s.about, mission } })}
+              textarea
+              rows={4}
+            />
+            <Pair
+              label="Mission — full page"
+              value={s.about.missionFull}
+              onChange={(missionFull) => patch({ about: { ...s.about, missionFull } })}
+              textarea
+              rows={12}
+            />
+          </div>
         </section>
       )}
 

@@ -144,9 +144,15 @@ export interface SiteSettings {
   heroSlides?: HeroSlide[];
   logo?: string;
   about: {
+    /** Short version, shown on the About card. */
     history: Localized;
     vision: Localized;
     mission: Localized;
+    /** Full text, shown on /about/history, /about/vision, /about/mission.
+        Falls back to the short version when an editor hasn't written one. */
+    historyFull?: Localized;
+    visionFull?: Localized;
+    missionFull?: Localized;
     values: { id: string; title: Localized; description: Localized; icon?: string }[];
     timeline: TimelineEntry[];
   };
